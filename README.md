@@ -1,73 +1,100 @@
-# React + TypeScript + Vite
+# Time Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A clean, minimal time tracking app for freelancers and solo practitioners. Track hours across multiple projects, log entries manually or with a live timer, filter and sort your history, and export to CSV for invoicing.
 
-Currently, two official plugins are available:
+Built with React, TypeScript, and Vite. All data is stored locally in the browser — no account, no server, no sync.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Project-based tracking** — Create as many projects as you need; each gets its own timeline of entries
+- **Manual entry or live timer** — Type in a duration (`1h 30m`, `1.5`, `90m`, `1:30`) or run the stopwatch and let it fill in automatically
+- **Preset + custom tasks** — Choose from common design/dev task types or save your own
+- **Sort & filter** — Sort entries by entry date or creation time (ascending/descending); filter by Today, This Week, This Month, or a custom date range
+- **Summary view** — See totals grouped by task type or by date, with expandable breakdowns per group
+- **Export CSV** — Downloads a spreadsheet of the current project's entries respecting any active filter/sort
+- **Yellow highlight** — Newly added entries briefly highlight so you can spot them instantly
+- **Inline editing** — Edit or delete any entry directly in the list; rename projects by clicking the title
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Getting Started
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Prerequisites
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- [Node.js](https://nodejs.org/) v18 or later
+- npm (comes with Node)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Clone & install
+
+```bash
+git clone https://github.com/jeffhunt00/time-tracker.git
+cd time-tracker
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Run locally
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run dev
 ```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+### Build for production
+
+```bash
+npm run build
+```
+
+Output goes to `dist/`. You can deploy that folder to any static host (Netlify, Vercel, GitHub Pages, etc.).
+
+### Preview the production build
+
+```bash
+npm run preview
+```
+
+---
+
+## Data & Privacy
+
+Everything is stored in your browser's `localStorage`. Nothing is sent to a server. Clearing your browser's site data will erase your entries, so export to CSV regularly if you need a backup.
+
+---
+
+## Project Structure
+
+```
+src/
+├── components/
+│   ├── HomePage.tsx        # Project list / landing page
+│   ├── ProjectPage.tsx     # Single project view (tracker + summary)
+│   ├── TimeEntryForm.tsx   # Manual entry form + timer
+│   ├── TimeEntryList.tsx   # Entry list with edit/delete
+│   ├── EntryToolbar.tsx    # Sort + date filter controls
+│   ├── SummaryView.tsx     # Grouped summary (by task or date)
+│   └── TaskSelector.tsx    # Task dropdown with custom task support
+├── hooks/
+│   └── useAppData.ts       # All app state + localStorage persistence
+├── types/
+│   └── index.ts            # TypeScript interfaces + preset task list
+└── utils/
+    ├── csv.ts              # CSV export
+    ├── storage.ts          # localStorage read/write
+    └── time.ts             # Duration parsing and formatting
+```
+
+---
+
+## Tech Stack
+
+| | |
+|---|---|
+| Framework | React 19 |
+| Language | TypeScript |
+| Build tool | Vite |
+| Styling | Plain CSS (custom properties) |
+| Storage | Browser localStorage |
+| No dependencies | No UI library, no router, no state manager |
