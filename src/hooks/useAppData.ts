@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import type { AppData, Project, TimeEntry, TimerState } from '../types';
+import type { AppData, Project, TimeEntry, TimerState, WaveConfig } from '../types';
 import { loadData, saveData } from '../utils/storage';
 
 function generateId(): string {
@@ -64,11 +64,12 @@ export function useAppData() {
 
   // --- Time Entries ---
   const addTimeEntry = useCallback(
-    (entry: Omit<TimeEntry, 'id' | 'createdAt'>): string => {
+    (entry: Omit<TimeEntry, 'id' | 'createdAt' | 'billedStatus'>): string => {
       const timeEntry: TimeEntry = {
         ...entry,
         id: generateId(),
         createdAt: new Date().toISOString(),
+        billedStatus: 'unbilled',
       };
       update((d) => ({
         ...d,
@@ -106,6 +107,55 @@ export function useAppData() {
         if (d.customTasks.includes(task)) return d;
         return { ...d, customTasks: [...d.customTasks, task] };
       });
+    },
+    [update]
+  );
+
+  // --- Billing ---
+  const markEntriesBilled = useCallback(
+    (entryIds: string[], invoiceId: string) => {
+      update((d) => ({
+        ...d,
+        timeEntries: d.timeEntries.map((e) =>
+          entryIds.includes(e.id) ? { ...e, billedStatus: 'billed' as const, invoiceId } : e
+        ),
+      }));
+    },
+    [update]
+  );
+
+  const markEntryUnbilled = useCallback(
+    (entryId: string) => {
+      update((d) => ({
+        ...d,
+        timeEntries: d.timeEntries.map((e) =>
+          e.id === entryId ? { ...e, billedStatus: 'unbilled' as const, invoiceId: undefined } : e
+        ),
+      }));
+    },
+    [update]
+  );
+
+  // --- Wave Config ---
+  const updateWaveConfig = useCallback(
+    (config: Partial<WaveConfig>) => {
+      update((d) => ({
+        ...d,
+        waveConfig: { ...d.waveConfig, ...config },
+      }));
+    },
+    [update]
+  );
+
+  // --- Project Hourly Rate ---
+  const setProjectHourlyRate = useCallback(
+    (projectId: string, rate: number) => {
+      update((d) => ({
+        ...d,
+        projects: d.projects.map((p) =>
+          p.id === projectId ? { ...p, hourlyRate: rate } : p
+        ),
+      }));
     },
     [update]
   );
@@ -183,6 +233,10 @@ export function useAppData() {
     updateTimeEntry,
     deleteTimeEntry,
     addCustomTask,
+    markEntriesBilled,
+    markEntryUnbilled,
+    updateWaveConfig,
+    setProjectHourlyRate,
     startTimer,
     stopTimer,
     resetTimer,

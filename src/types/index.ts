@@ -2,6 +2,7 @@ export interface Project {
   id: string;
   title: string;
   createdAt: string;
+  hourlyRate?: number;
 }
 
 export interface TimeEntry {
@@ -12,6 +13,9 @@ export interface TimeEntry {
   date: string; // ISO date string YYYY-MM-DD
   description: string;
   createdAt: string;
+  billedStatus: 'unbilled' | 'billed';
+  invoiceId?: string;
+  reference?: string; // Jira ticket, PO number, etc.
 }
 
 export interface TimerState {
@@ -22,12 +26,31 @@ export interface TimerState {
   elapsed: number; // ms accumulated before current run
 }
 
+export interface WaveConfig {
+  connected: boolean;
+  businessId?: string;
+  businessName?: string;
+  defaultCustomerId?: string;
+  defaultCustomerName?: string;
+  defaultProductId?: string;
+  defaultProductName?: string;
+  defaultHourlyRate?: number;
+}
+
+export interface InvoiceLineItem {
+  description: string;
+  quantity: number; // decimal hours
+  unitPrice: number; // hourly rate
+  entryIds: string[];
+}
+
 export interface AppData {
   projects: Project[];
   timeEntries: TimeEntry[];
   customTasks: string[];
   timerState: TimerState;
   hasOnboarded: boolean;
+  waveConfig: WaveConfig;
 }
 
 export const PRESET_TASKS = {
