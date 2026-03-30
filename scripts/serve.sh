@@ -4,6 +4,5 @@
 # To rebuild after code changes: npm run build (from the project root)
 
 exec /opt/homebrew/bin/node \
-  /Users/jeff/Development/time-tracker/node_modules/serve/build/main.js \
-  -s dist \
-  -l 4000
+  --import tsx \
+  /Users/jeff/Development/time-tracker/server/index.ts
