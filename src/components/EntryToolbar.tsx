@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 export type SortMode = 'date-desc' | 'date-asc' | 'created-desc' | 'created-asc';
+export type BillingFilter = 'all' | 'unbilled' | 'billed';
 
 export interface DateFilter {
   from: string;
@@ -50,6 +51,8 @@ interface Props {
   activeFilter: DateFilter | null;
   onApplyFilter: (filter: DateFilter) => void;
   onClearFilter: () => void;
+  billingFilter?: BillingFilter;
+  onBillingFilterChange?: (filter: BillingFilter) => void;
 }
 
 export function EntryToolbar({
@@ -58,6 +61,8 @@ export function EntryToolbar({
   activeFilter,
   onApplyFilter,
   onClearFilter,
+  billingFilter = 'all',
+  onBillingFilterChange,
 }: Props) {
   const [showFilterForm, setShowFilterForm] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
@@ -92,6 +97,21 @@ export function EntryToolbar({
 
   return (
     <div className="entry-toolbar">
+      {onBillingFilterChange && (
+        <div className="toolbar-row">
+          <div className="billing-filter">
+            {(['all', 'unbilled', 'billed'] as BillingFilter[]).map((f) => (
+              <button
+                key={f}
+                className={`btn btn-small ${billingFilter === f ? 'btn-primary' : ''}`}
+                onClick={() => onBillingFilterChange(f)}
+              >
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="toolbar-row">
         <div className="toolbar-left">
           {activeFilter ? (

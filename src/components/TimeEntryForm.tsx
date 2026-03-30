@@ -33,6 +33,7 @@ export function TimeEntryForm({
   const [durationInput, setDurationInput] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [description, setDescription] = useState('');
+  const [reference, setReference] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // When timer stops, auto-fill duration
@@ -72,12 +73,14 @@ export function TimeEntryForm({
       duration: minutes,
       date: date || new Date().toISOString().split('T')[0],
       description: description.trim(),
+      reference: reference.trim() || undefined,
     });
 
     // Reset form
     setTask('');
     setDurationInput('');
     setDescription('');
+    setReference('');
     setDate(new Date().toISOString().split('T')[0]);
     setErrors({});
   }
@@ -134,6 +137,17 @@ export function TimeEntryForm({
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
+          className="form-input"
+        />
+      </div>
+
+      <div className="form-row">
+        <label>Reference</label>
+        <input
+          type="text"
+          placeholder="JIRA-123, PO#, etc."
+          value={reference}
+          onChange={(e) => setReference(e.target.value)}
           className="form-input"
         />
       </div>

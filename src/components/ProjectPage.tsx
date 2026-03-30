@@ -3,7 +3,7 @@ import type { Project, TimeEntry, TimerState } from '../types';
 import { TimeEntryForm } from './TimeEntryForm';
 import { TimeEntryList } from './TimeEntryList';
 import { EntryToolbar } from './EntryToolbar';
-import type { SortMode, DateFilter } from './EntryToolbar';
+import type { SortMode, DateFilter, BillingFilter } from './EntryToolbar';
 import { SummaryView } from './SummaryView';
 import { exportEntriesCSV } from '../utils/csv';
 import { formatDuration, formatDecimalHours } from '../utils/time';
@@ -18,7 +18,7 @@ interface Props {
   onBack: () => void;
   onUpdateProject: (id: string, title: string) => void;
   onDeleteProject: (id: string) => void;
-  onAddEntry: (entry: Omit<TimeEntry, 'id' | 'createdAt'>) => string;
+  onAddEntry: (entry: Omit<TimeEntry, 'id' | 'createdAt' | 'billedStatus'>) => string;
   onUpdateEntry: (id: string, fields: Partial<Omit<TimeEntry, 'id' | 'createdAt'>>) => void;
   onDeleteEntry: (id: string) => void;
   onSaveCustomTask: (task: string) => void;
@@ -47,6 +47,7 @@ export function ProjectPage({
   const [sortMode, setSortMode] = useState<SortMode>('date-desc');
   const [activeFilter, setActiveFilter] = useState<DateFilter | null>(null);
   const [highlightedEntryId, setHighlightedEntryId] = useState<string | null>(null);
+  const [billingFilter, setBillingFilter] = useState<BillingFilter>('all');
 
   // Inline title editing
   const [editingTitle, setEditingTitle] = useState(false);
@@ -64,6 +65,10 @@ export function ProjectPage({
     if (activeFilter) {
       if (activeFilter.from) entries = entries.filter((e) => e.date >= activeFilter.from);
       if (activeFilter.to) entries = entries.filter((e) => e.date <= activeFilter.to);
+    }
+
+    if (billingFilter !== 'all') {
+      entries = entries.filter((e) => e.billedStatus === billingFilter);
     }
 
     entries.sort((a, b) => {
@@ -86,9 +91,9 @@ export function ProjectPage({
     });
 
     return entries;
-  }, [projectEntries, activeFilter, sortMode]);
+  }, [projectEntries, activeFilter, sortMode, billingFilter]);
 
-  function handleAddEntry(entry: Omit<TimeEntry, 'id' | 'createdAt'>) {
+  function handleAddEntry(entry: Omit<TimeEntry, 'id' | 'createdAt' | 'billedStatus'>) {
     const id = onAddEntry(entry);
     onResetTimer();
     setHighlightedEntryId(id);
@@ -224,6 +229,8 @@ export function ProjectPage({
           activeFilter={activeFilter}
           onApplyFilter={setActiveFilter}
           onClearFilter={() => setActiveFilter(null)}
+          billingFilter={billingFilter}
+          onBillingFilterChange={setBillingFilter}
         />
       ) : (
         <div className="tracker-view">
@@ -243,6 +250,8 @@ export function ProjectPage({
             activeFilter={activeFilter}
             onApplyFilter={setActiveFilter}
             onClearFilter={() => setActiveFilter(null)}
+            billingFilter={billingFilter}
+            onBillingFilterChange={setBillingFilter}
           />
 
           <TimeEntryList

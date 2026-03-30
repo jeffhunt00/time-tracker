@@ -756,11 +756,43 @@ textarea.form-input {
   text-align: right;
 }
 
+.entry-reference {
+  font-size: 12px;
+  color: var(--accent);
+  margin-top: 4px;
+  font-family: 'SF Mono', ui-monospace, Consolas, monospace;
+}
+
 .entry-description {
   font-size: 13px;
   color: var(--text-secondary);
   margin-top: 6px;
   padding-left: 1px;
+}
+
+/* Billed status badge */
+.billed-badge {
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.billed-badge.unbilled {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.billed-badge.billed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+/* Billing filter */
+.billing-filter {
+  display: flex;
+  gap: 4px;
 }
 
 .entry-actions {

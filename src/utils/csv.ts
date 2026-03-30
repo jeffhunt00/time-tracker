@@ -4,13 +4,15 @@ import { formatDecimalHours } from './time';
 export function exportEntriesCSV(project: Project, entries: TimeEntry[]): void {
   if (entries.length === 0) return;
 
-  const headers = ['Project', 'Task', 'Duration (hours)', 'Date', 'Description'];
+  const headers = ['Project', 'Task', 'Duration (hours)', 'Date', 'Description', 'Reference', 'Billed Status'];
   const rows = entries.map((e) => [
     csvEscape(project.title),
     csvEscape(e.task),
     formatDecimalHours(e.duration),
     e.date,
     csvEscape(e.description),
+    csvEscape(e.reference ?? ''),
+    e.billedStatus,
   ]);
 
   const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');

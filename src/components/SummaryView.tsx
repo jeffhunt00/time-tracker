@@ -2,9 +2,9 @@ import { useState } from 'react';
 import type { TimeEntry } from '../types';
 import { formatDuration, formatDecimalHours } from '../utils/time';
 import { EntryToolbar } from './EntryToolbar';
-import type { SortMode, DateFilter } from './EntryToolbar';
+import type { SortMode, DateFilter, BillingFilter } from './EntryToolbar';
 
-type GroupMode = 'task' | 'date';
+type GroupMode = 'task' | 'date' | 'reference';
 
 interface Props {
   entries: TimeEntry[];
@@ -13,6 +13,8 @@ interface Props {
   activeFilter: DateFilter | null;
   onApplyFilter: (filter: DateFilter) => void;
   onClearFilter: () => void;
+  billingFilter?: BillingFilter;
+  onBillingFilterChange?: (filter: BillingFilter) => void;
 }
 
 interface TaskGroup {
@@ -25,6 +27,13 @@ interface TaskGroup {
 interface DateGroup {
   date: string;
   totalMinutes: number;
+  entries: TimeEntry[];
+}
+
+interface ReferenceGroup {
+  reference: string;
+  totalMinutes: number;
+  count: number;
   entries: TimeEntry[];
 }
 
@@ -67,6 +76,24 @@ function groupByDate(entries: TimeEntry[], sortMode: SortMode): DateGroup[] {
   return groups;
 }
 
+function groupByReference(entries: TimeEntry[]): ReferenceGroup[] {
+  const map = new Map<string, TimeEntry[]>();
+  for (const e of entries) {
+    const key = e.reference || '(No reference)';
+    const arr = map.get(key) || [];
+    arr.push(e);
+    map.set(key, arr);
+  }
+  return Array.from(map.entries())
+    .map(([reference, items]) => ({
+      reference,
+      totalMinutes: items.reduce((sum, e) => sum + e.duration, 0),
+      count: items.length,
+      entries: items,
+    }))
+    .sort((a, b) => b.totalMinutes - a.totalMinutes);
+}
+
 function formatDateLabel(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00');
   const today = new Date();
@@ -93,6 +120,8 @@ export function SummaryView({
   activeFilter,
   onApplyFilter,
   onClearFilter,
+  billingFilter,
+  onBillingFilterChange,
 }: Props) {
   const [groupMode, setGroupMode] = useState<GroupMode>('task');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -100,6 +129,7 @@ export function SummaryView({
   const totalMinutes = entries.reduce((sum, e) => sum + e.duration, 0);
   const taskGroups = groupByTask(entries);
   const dateGroups = groupByDate(entries, sortMode);
+  const referenceGroups = groupByReference(entries);
 
   function toggleGroup(key: string) {
     setExpandedGroups((prev) => {
@@ -118,6 +148,8 @@ export function SummaryView({
         activeFilter={activeFilter}
         onApplyFilter={onApplyFilter}
         onClearFilter={onClearFilter}
+        billingFilter={billingFilter}
+        onBillingFilterChange={onBillingFilterChange}
       />
 
       <div className="summary-total">
@@ -141,6 +173,12 @@ export function SummaryView({
           onClick={() => setGroupMode('date')}
         >
           By Date
+        </button>
+        <button
+          className={`btn btn-small ${groupMode === 'reference' ? 'btn-primary' : ''}`}
+          onClick={() => setGroupMode('reference')}
+        >
+          By Reference
         </button>
       </div>
 
@@ -172,6 +210,44 @@ export function SummaryView({
                       .sort((a, b) => b.date.localeCompare(a.date))
                       .map((e) => (
                         <div key={e.id} className="summary-entry">
+                          <span className="summary-entry-date">{e.date}</span>
+                          <span className="summary-entry-duration">{formatDuration(e.duration)}</span>
+                          {e.description && (
+                            <span className="summary-entry-desc">{e.description}</span>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : groupMode === 'reference' ? (
+        <div className="summary-groups">
+          {referenceGroups.map((group) => {
+            const expanded = expandedGroups.has(group.reference);
+            return (
+              <div key={group.reference} className="summary-group-card">
+                <button
+                  className="summary-group-header"
+                  onClick={() => toggleGroup(group.reference)}
+                >
+                  <span className="summary-group-expand">{expanded ? '\u25BE' : '\u25B8'}</span>
+                  <span className="summary-group-name">{group.reference}</span>
+                  <span className="summary-group-hours">
+                    {formatDuration(group.totalMinutes)}
+                    <span className="muted"> ({formatDecimalHours(group.totalMinutes)}h)</span>
+                  </span>
+                  <span className="muted">{group.count}x</span>
+                </button>
+                {expanded && (
+                  <div className="summary-group-entries">
+                    {group.entries
+                      .sort((a, b) => b.date.localeCompare(a.date))
+                      .map((e) => (
+                        <div key={e.id} className="summary-entry">
+                          <span className="summary-entry-task">{e.task}</span>
                           <span className="summary-entry-date">{e.date}</span>
                           <span className="summary-entry-duration">{formatDuration(e.duration)}</span>
                           {e.description && (

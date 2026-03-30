@@ -28,7 +28,8 @@ export function TimeEntryList({
     duration: string;
     date: string;
     description: string;
-  }>({ task: '', duration: '', date: '', description: '' });
+    reference: string;
+  }>({ task: '', duration: '', date: '', description: '', reference: '' });
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const highlightRef = useRef<HTMLDivElement>(null);
 
@@ -50,6 +51,7 @@ export function TimeEntryList({
       duration: formatDuration(entry.duration),
       date: entry.date,
       description: entry.description,
+      reference: entry.reference ?? '',
     });
   }
 
@@ -61,6 +63,7 @@ export function TimeEntryList({
       duration: minutes,
       date: editFields.date,
       description: editFields.description.trim(),
+      reference: editFields.reference.trim() || undefined,
     });
     setEditingId(null);
   }
@@ -121,6 +124,15 @@ export function TimeEntryList({
                     className="form-input small"
                   />
                 </div>
+                <input
+                  type="text"
+                  value={editFields.reference}
+                  onChange={(e) =>
+                    setEditFields((f) => ({ ...f, reference: e.target.value }))
+                  }
+                  className="form-input small"
+                  placeholder="Reference (JIRA-123, PO#, etc.)"
+                />
                 <textarea
                   value={editFields.description}
                   onChange={(e) =>
@@ -143,9 +155,15 @@ export function TimeEntryList({
               <>
                 <div className="entry-main">
                   <span className="entry-task">{entry.task}</span>
+                  <span className={`billed-badge ${entry.billedStatus}`}>
+                    {entry.billedStatus === 'billed' ? 'Billed' : 'Unbilled'}
+                  </span>
                   <span className="entry-duration">{formatDuration(entry.duration)}</span>
                   <span className="entry-date">{entry.date}</span>
                 </div>
+                {entry.reference && (
+                  <div className="entry-reference">{entry.reference}</div>
+                )}
                 {entry.description && (
                   <div className="entry-description">{entry.description}</div>
                 )}
