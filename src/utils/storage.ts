@@ -28,8 +28,8 @@ function migrateData(data: AppData): AppData {
     ...data,
     waveConfig: data.waveConfig ?? DEFAULT_WAVE_CONFIG,
     timeEntries: data.timeEntries.map((entry) => ({
-      billedStatus: 'unbilled' as const,
       ...entry,
+      billedStatus: entry.billedStatus ?? 'unbilled' as const,
     })),
   };
 }

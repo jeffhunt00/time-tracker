@@ -14,6 +14,7 @@ interface Props {
     duration: number;
     date: string;
     description: string;
+    reference?: string;
   }) => void;
   onStartTimer: (projectId: string, task: string) => void;
   onStopTimer: () => number;

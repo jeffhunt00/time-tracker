@@ -5,10 +5,11 @@ import { TimeEntryList } from './TimeEntryList';
 import { EntryToolbar } from './EntryToolbar';
 import type { SortMode, DateFilter, BillingFilter } from './EntryToolbar';
 import { SummaryView } from './SummaryView';
+import { InvoiceBuilder } from './InvoiceBuilder';
 import { exportEntriesCSV } from '../utils/csv';
 import { formatDuration, formatDecimalHours } from '../utils/time';
 
-type View = 'tracker' | 'summary';
+type View = 'tracker' | 'summary' | 'invoice';
 
 interface Props {
   project: Project;
@@ -49,8 +50,8 @@ export function ProjectPage({
   onResetTimer,
   waveConfig,
   onMarkEntriesBilled,
-  onMarkEntryUnbilled,
-  onSetProjectHourlyRate,
+  onMarkEntryUnbilled: _onMarkEntryUnbilled,
+  onSetProjectHourlyRate: _onSetProjectHourlyRate,
   onOpenWaveSetup,
 }: Props) {
   const [view, setView] = useState<View>('tracker');
@@ -227,11 +228,25 @@ export function ProjectPage({
           >
             Summary
           </button>
+          <button
+            className={`btn btn-small ${view === 'invoice' ? 'btn-primary' : ''}`}
+            onClick={() => setView('invoice')}
+          >
+            Invoice
+          </button>
         </nav>
       </div>
 
       {/* Content */}
-      {view === 'summary' ? (
+      {view === 'invoice' ? (
+        <InvoiceBuilder
+          entries={processedEntries}
+          waveConfig={waveConfig}
+          hourlyRate={project.hourlyRate ?? waveConfig.defaultHourlyRate ?? 0}
+          onMarkEntriesBilled={onMarkEntriesBilled}
+          onOpenWaveSetup={onOpenWaveSetup}
+        />
+      ) : view === 'summary' ? (
         <SummaryView
           entries={processedEntries}
           sortMode={sortMode}
