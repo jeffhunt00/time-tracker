@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import type { Project, TimeEntry, TimerState } from '../types';
+import type { Project, TimeEntry, TimerState, WaveConfig } from '../types';
 import { TimeEntryForm } from './TimeEntryForm';
 import { TimeEntryList } from './TimeEntryList';
 import { EntryToolbar } from './EntryToolbar';
@@ -25,6 +25,11 @@ interface Props {
   onStartTimer: (projectId: string, task: string) => void;
   onStopTimer: () => number;
   onResetTimer: () => void;
+  waveConfig: WaveConfig;
+  onMarkEntriesBilled: (entryIds: string[], invoiceId: string) => void;
+  onMarkEntryUnbilled: (entryId: string) => void;
+  onSetProjectHourlyRate: (projectId: string, rate: number) => void;
+  onOpenWaveSetup: () => void;
 }
 
 export function ProjectPage({
@@ -42,6 +47,11 @@ export function ProjectPage({
   onStartTimer,
   onStopTimer,
   onResetTimer,
+  waveConfig,
+  onMarkEntriesBilled,
+  onMarkEntryUnbilled,
+  onSetProjectHourlyRate,
+  onOpenWaveSetup,
 }: Props) {
   const [view, setView] = useState<View>('tracker');
   const [sortMode, setSortMode] = useState<SortMode>('date-desc');

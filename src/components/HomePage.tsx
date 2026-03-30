@@ -7,6 +7,7 @@ interface Props {
   timeEntries: TimeEntry[];
   onSelectProject: (id: string) => void;
   onAddProject: (title: string) => string;
+  onOpenWaveSetup: () => void;
 }
 
 function getProjectStats(projectId: string, timeEntries: TimeEntry[]) {
@@ -28,7 +29,7 @@ function formatLastWorked(dateStr: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: diff > 365 ? 'numeric' : undefined });
 }
 
-export function HomePage({ projects, timeEntries, onSelectProject, onAddProject }: Props) {
+export function HomePage({ projects, timeEntries, onSelectProject, onAddProject, onOpenWaveSetup }: Props) {
   const [newTitle, setNewTitle] = useState('');
 
   function handleAdd(e: React.FormEvent) {
@@ -46,7 +47,16 @@ export function HomePage({ projects, timeEntries, onSelectProject, onAddProject 
     <div className="home-page">
       <div className="home-header">
         <div className="home-header-text">
-          <h1>Time Tracker</h1>
+          <div className="home-title-row">
+            <h1>Time Tracker</h1>
+            <button
+              className="btn btn-small btn-icon-text"
+              onClick={onOpenWaveSetup}
+              title="Wave Integration Settings"
+            >
+              Settings
+            </button>
+          </div>
           {totalTrackedMinutes > 0 && (
             <p className="home-header-sub">
               {formatDuration(totalTrackedMinutes)} tracked across {projects.length}{' '}
