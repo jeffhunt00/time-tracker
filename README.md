@@ -1,8 +1,8 @@
 # Time Tracker
 
-A clean, minimal time tracking app for freelancers and solo practitioners. Track hours across multiple projects, log entries manually or with a live timer, filter and sort your history, and export to CSV for invoicing.
+A clean, minimal time tracking app for freelancers and solo practitioners. Track hours across multiple projects, log entries manually or with a live timer, filter and sort your history, and create invoices in Wave accounting.
 
-Built with React, TypeScript, and Vite. All data is stored locally in the browser — no account, no server, no sync.
+Built with React, TypeScript, and Vite. All data is stored locally in the browser via localStorage. The Express backend handles Wave OAuth and API proxying only — no database, no accounts.
 
 ---
 
@@ -11,11 +11,15 @@ Built with React, TypeScript, and Vite. All data is stored locally in the browse
 - **Project-based tracking** — Create as many projects as you need; each gets its own timeline of entries
 - **Manual entry or live timer** — Type in a duration (`1h 30m`, `1.5`, `90m`, `1:30`) or run the stopwatch and let it fill in automatically
 - **Preset + custom tasks** — Choose from common design/dev task types or save your own
-- **Sort & filter** — Sort entries by entry date or creation time (ascending/descending); filter by Today, This Week, This Month, or a custom date range
-- **Summary view** — See totals grouped by task type or by date, with expandable breakdowns per group
-- **Export CSV** — Downloads a spreadsheet of the current project's entries respecting any active filter/sort
+- **Reference field** — Tag entries with Jira tickets, PO numbers, or any reference for grouping
+- **Sort & filter** — Sort entries by entry date or creation time (ascending/descending); filter by Today, This Week, This Month, custom date range, or billed/unbilled status
+- **Summary view** — See totals grouped by task type, by date, or by reference, with expandable breakdowns per group
+- **Invoice builder** — Select unbilled entries, group them into line items (by task, reference, or single item), preview totals, and create an invoice directly in Wave
+- **Billing status** — Each entry tracks billed/unbilled status with a visual badge; filter to see what's been invoiced
+- **Export CSV** — Downloads a spreadsheet of the current project's entries respecting any active filter/sort, including reference and billed status
 - **Yellow highlight** — Newly added entries briefly highlight so you can spot them instantly
 - **Inline editing** — Edit or delete any entry directly in the list; rename projects by clicking the title
+- **Per-project hourly rates** — Set a default rate globally or override it per project
 
 ---
 
@@ -42,13 +46,15 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173) in your browser. Changes hot-reload instantly.
 
+> The Vite dev server proxies `/api/*` requests to the Express backend on port 4000. If you need the Wave integration during development, start the backend separately: `npm start` in another terminal.
+
 ### Build for production
 
 ```bash
 npm run build
 ```
 
-Output goes to `dist/`. You can deploy that folder to any static host (Netlify, Vercel, GitHub Pages, etc.).
+Output goes to `dist/`.
 
 ### Serve the production build locally
 
@@ -56,7 +62,50 @@ Output goes to `dist/`. You can deploy that folder to any static host (Netlify, 
 npm start
 ```
 
-Serves `dist/` on [http://localhost:4000](http://localhost:4000) using [`serve`](https://github.com/vercel/serve). Run `npm run build` first.
+Starts the Express server on [http://localhost:4000](http://localhost:4000), serving the production build from `dist/` and handling Wave API routes. Run `npm run build` first.
+
+---
+
+## Wave Invoice Integration
+
+The app can create invoices directly in [Wave accounting](https://www.waveapps.com/) from your tracked time entries.
+
+### How it works
+
+1. **Connect** — Open Settings, click "Connect to Wave", authorize via OAuth
+2. **Configure** — Select your Wave business, default customer, product/service, and hourly rate
+3. **Track time** — Log entries as usual; optionally add a Reference (Jira ticket, PO#) for grouping
+4. **Invoice** — Go to a project's Invoice tab, select unbilled entries, group them into line items, and send to Wave
+
+### Setting up the Wave Developer App
+
+1. Go to [developer.waveapps.com](https://developer.waveapps.com) and sign in (or create an account)
+2. Click **Create an application**
+3. Set the **Redirect URI** to `http://time-tracker.test/api/wave/callback` (or your local URL)
+4. Note your **Client ID** and **Client Secret**
+5. Create the file `server/.env` (this file is gitignored):
+
+```
+WAVE_CLIENT_ID=your_client_id_here
+WAVE_CLIENT_SECRET=your_client_secret_here
+WAVE_REDIRECT_URI=http://time-tracker.test/api/wave/callback
+```
+
+6. Restart the server (`npm start` or reload the LaunchAgent)
+7. Open the app, click Settings, and click "Connect to Wave"
+
+### Required OAuth Scopes
+
+The app requests these scopes during authorization:
+- `account:read` — Read your Wave account info
+- `business:read` — List businesses, customers, and products
+- `invoice:write` — Create invoices
+- `customer:read` — List customers for invoice recipient
+- `product:read` — List products/services for line items
+
+### Token Storage
+
+OAuth tokens are stored at `~/.time-tracker/wave-tokens.json` (server-side only). Access tokens expire after 2 hours and are automatically refreshed using the refresh token.
 
 ---
 
@@ -83,20 +132,18 @@ This creates the `dist/` folder that the server will serve. **Re-run this any ti
 
 ---
 
-### 2. Create the launcher script
+### 2. Configure the launcher script
 
-The LaunchAgent needs an executable script to call. `scripts/serve.sh` is already included in this repo:
+The launcher script `scripts/serve.sh` is already included. Verify the paths match your system:
 
 ```bash
 #!/bin/bash
-# scripts/serve.sh
 exec /opt/homebrew/bin/node \
-  /path/to/time-tracker/node_modules/serve/build/main.js \
-  -s dist \
-  -l 4000
+  --import tsx \
+  /path/to/time-tracker/server/index.ts
 ```
 
-Update the absolute path to match where you cloned the repo, then make it executable:
+Make it executable:
 
 ```bash
 chmod +x scripts/serve.sh
@@ -153,11 +200,9 @@ launchctl load ~/Library/LaunchAgents/com.timetracker.server.plist
 Verify it's running:
 
 ```bash
-curl -I http://127.0.0.1:4000
-# Should return: HTTP/1.1 200 OK
+curl -s http://127.0.0.1:4000/api/wave/status
+# Should return: {"connected":false}
 ```
-
-The service will now start automatically every time you log in. It will also restart itself if it ever crashes.
 
 ---
 
@@ -167,17 +212,17 @@ The service will now start automatically every time you log in. It will also res
 valet proxy time-tracker http://127.0.0.1:4000
 ```
 
-That's it. Open [http://time-tracker.test](http://time-tracker.test) in any browser on your machine.
+Open [http://time-tracker.test](http://time-tracker.test) in any browser.
 
 ---
 
 ### Useful commands
 
 ```bash
-# Rebuild after code changes (no server restart needed)
+# Rebuild after code changes (no server restart needed for frontend)
 npm run build
 
-# Restart the server manually
+# Restart the server (needed after backend changes)
 launchctl unload ~/Library/LaunchAgents/com.timetracker.server.plist
 launchctl load  ~/Library/LaunchAgents/com.timetracker.server.plist
 
@@ -185,7 +230,7 @@ launchctl load  ~/Library/LaunchAgents/com.timetracker.server.plist
 tail -f ~/Library/Logs/timetracker.log
 tail -f ~/Library/Logs/timetracker.error.log
 
-# Stop the server permanently (survives reboots)
+# Stop the server permanently
 launchctl unload ~/Library/LaunchAgents/com.timetracker.server.plist
 
 # Remove the Valet proxy
@@ -196,23 +241,32 @@ valet unproxy time-tracker
 
 ## Data & Privacy
 
-Everything is stored in your browser's `localStorage`. Nothing is sent to a server. Clearing your browser's site data will erase your entries, so export to CSV regularly if you need a backup.
+- **Time entries, projects, and settings** are stored in your browser's `localStorage`. Clearing site data erases everything — export to CSV regularly.
+- **Wave OAuth tokens** are stored server-side at `~/.time-tracker/wave-tokens.json`. They are never sent to the browser.
+- **Wave API calls** are proxied through the local Express server. Your Wave client secret never leaves the server process.
 
 ---
 
 ## Project Structure
 
 ```
+server/
+├── index.ts              # Express server (static files + API routes)
+├── wave-routes.ts        # OAuth and GraphQL proxy endpoints
+├── wave-token.ts         # Token storage and auto-refresh
+└── .env                  # Wave credentials (gitignored)
 scripts/
-└── serve.sh              # Launcher script used by the macOS LaunchAgent
+└── serve.sh              # Launcher script for macOS LaunchAgent
 src/
 ├── components/
 │   ├── HomePage.tsx       # Project list / landing page
-│   ├── ProjectPage.tsx    # Single project view (tracker + summary)
+│   ├── ProjectPage.tsx    # Single project view (tracker + summary + invoice)
 │   ├── TimeEntryForm.tsx  # Manual entry form + timer
-│   ├── TimeEntryList.tsx  # Entry list with edit/delete
-│   ├── EntryToolbar.tsx   # Sort + date filter controls
-│   ├── SummaryView.tsx    # Grouped summary (by task or date)
+│   ├── TimeEntryList.tsx  # Entry list with edit/delete and billed badges
+│   ├── EntryToolbar.tsx   # Sort, date filter, and billing filter
+│   ├── SummaryView.tsx    # Grouped summary (by task, date, or reference)
+│   ├── InvoiceBuilder.tsx # Three-step invoice creation flow
+│   ├── WaveSetup.tsx      # Wave connection and configuration modal
 │   └── TaskSelector.tsx   # Task dropdown with custom task support
 ├── hooks/
 │   └── useAppData.ts      # All app state + localStorage persistence
@@ -220,8 +274,9 @@ src/
 │   └── index.ts           # TypeScript interfaces + preset task list
 └── utils/
     ├── csv.ts             # CSV export
-    ├── storage.ts         # localStorage read/write
-    └── time.ts            # Duration parsing and formatting
+    ├── storage.ts         # localStorage read/write + data migration
+    ├── time.ts            # Duration parsing and formatting
+    └── waveApi.ts         # Wave GraphQL client (frontend)
 ```
 
 ---
@@ -235,5 +290,6 @@ src/
 | Build tool | Vite |
 | Styling | Plain CSS (custom properties) |
 | Storage | Browser localStorage |
-| Local server | [serve](https://github.com/vercel/serve) |
-| No dependencies | No UI library, no router, no state manager |
+| Backend | Express (OAuth proxy + static server) |
+| Invoicing | Wave GraphQL API |
+| No heavy deps | No UI library, no router, no state manager |
