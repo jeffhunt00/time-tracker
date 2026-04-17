@@ -891,9 +891,21 @@ textarea.form-input {
 
 .summary-group-hours {
   font-family: 'SF Mono', ui-monospace, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 13px;
   color: var(--accent);
   font-weight: 500;
+}
+
+.summary-group-count {
+  background: var(--accent-bg, #e8e9fc);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 2px 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
 }
 
 .summary-group-entries {
@@ -903,36 +915,46 @@ textarea.form-input {
 
 .summary-entry {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: baseline;
+  gap: 12px;
   padding: 6px 16px 6px 38px;
   font-size: 13px;
 }
 
-.summary-entry-date,
-.summary-entry-task {
+.summary-entry-date {
+  font-family: 'SF Mono', ui-monospace, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
   color: var(--text);
+  font-size: 12px;
   min-width: 90px;
-}
-
-.summary-entry-task {
-  flex: 1;
-  font-weight: 500;
-  color: var(--text-heading);
+  flex-shrink: 0;
 }
 
 .summary-entry-duration {
   font-family: 'SF Mono', ui-monospace, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
   color: var(--accent);
   font-size: 12px;
+  min-width: 64px;
+  flex-shrink: 0;
+}
+
+.summary-entry-ref {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.summary-entry-task {
+  font-weight: 500;
+  color: var(--text-heading);
+  flex-shrink: 0;
 }
 
 .summary-entry-desc {
   color: var(--text-secondary);
   flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .muted {

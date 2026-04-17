@@ -17,6 +17,7 @@ const DEFAULT_WAVE_CONFIG: WaveConfig = {
 const DEFAULT_DATA: AppData = {
   projects: [],
   timeEntries: [],
+  invoices: [],
   customTasks: [],
   timerState: DEFAULT_TIMER,
   hasOnboarded: false,
@@ -26,6 +27,7 @@ const DEFAULT_DATA: AppData = {
 function migrateData(data: AppData): AppData {
   return {
     ...data,
+    invoices: data.invoices ?? [],
     waveConfig: data.waveConfig ?? DEFAULT_WAVE_CONFIG,
     timeEntries: data.timeEntries.map((entry) => ({
       ...entry,

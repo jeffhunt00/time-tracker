@@ -202,7 +202,7 @@ export function SummaryView({
                     {formatDuration(group.totalMinutes)}
                     <span className="muted"> ({formatDecimalHours(group.totalMinutes)}h)</span>
                   </span>
-                  <span className="muted">{group.count}x</span>
+                  <span className="summary-group-count">{group.count}</span>
                 </button>
                 {expanded && (
                   <div className="summary-group-entries">
@@ -212,6 +212,9 @@ export function SummaryView({
                         <div key={e.id} className="summary-entry">
                           <span className="summary-entry-date">{e.date}</span>
                           <span className="summary-entry-duration">{formatDuration(e.duration)}</span>
+                          {e.reference && (
+                            <span className="summary-entry-ref">{e.reference}</span>
+                          )}
                           {e.description && (
                             <span className="summary-entry-desc">{e.description}</span>
                           )}
@@ -239,7 +242,7 @@ export function SummaryView({
                     {formatDuration(group.totalMinutes)}
                     <span className="muted"> ({formatDecimalHours(group.totalMinutes)}h)</span>
                   </span>
-                  <span className="muted">{group.count}x</span>
+                  <span className="summary-group-count">{group.count}</span>
                 </button>
                 {expanded && (
                   <div className="summary-group-entries">
@@ -247,9 +250,9 @@ export function SummaryView({
                       .sort((a, b) => b.date.localeCompare(a.date))
                       .map((e) => (
                         <div key={e.id} className="summary-entry">
-                          <span className="summary-entry-task">{e.task}</span>
                           <span className="summary-entry-date">{e.date}</span>
                           <span className="summary-entry-duration">{formatDuration(e.duration)}</span>
+                          <span className="summary-entry-task">{e.task}</span>
                           {e.description && (
                             <span className="summary-entry-desc">{e.description}</span>
                           )}
@@ -277,14 +280,17 @@ export function SummaryView({
                     {formatDuration(group.totalMinutes)}
                     <span className="muted"> ({formatDecimalHours(group.totalMinutes)}h)</span>
                   </span>
-                  <span className="muted">{group.entries.length} entries</span>
+                  <span className="summary-group-count">{group.entries.length}</span>
                 </button>
                 {expanded && (
                   <div className="summary-group-entries">
                     {group.entries.map((e) => (
                       <div key={e.id} className="summary-entry">
-                        <span className="summary-entry-task">{e.task}</span>
                         <span className="summary-entry-duration">{formatDuration(e.duration)}</span>
+                        {e.reference && (
+                          <span className="summary-entry-ref">{e.reference}</span>
+                        )}
+                        <span className="summary-entry-task">{e.task}</span>
                         {e.description && (
                           <span className="summary-entry-desc">{e.description}</span>
                         )}

@@ -44,9 +44,24 @@ export interface InvoiceLineItem {
   entryIds: string[];
 }
 
+export interface Invoice {
+  id: string;
+  projectId: string;
+  entryIds: string[];
+  lineItems: InvoiceLineItem[];
+  dateInvoiced: string; // YYYY-MM-DD, user-editable
+  status: 'draft' | 'sent' | 'synced';
+  waveInvoiceId?: string;
+  waveViewUrl?: string;
+  totalAmount: number;
+  totalMinutes: number;
+  createdAt: string;
+}
+
 export interface AppData {
   projects: Project[];
   timeEntries: TimeEntry[];
+  invoices: Invoice[];
   customTasks: string[];
   timerState: TimerState;
   hasOnboarded: boolean;
