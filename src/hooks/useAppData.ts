@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import type { AppData, Project, TimeEntry, TimerState, WaveConfig } from '../types';
+import type { AppData, Project, TimeEntry, TimerState, WaveConfig, Invoice, InvoiceLineItem } from '../types';
 import { loadData, saveData } from '../utils/storage';
 
 function generateId(): string {
@@ -111,7 +111,127 @@ export function useAppData() {
     [update]
   );
 
-  // --- Billing ---
+  // --- Invoices ---
+  const createInvoiceRecord = useCallback(
+    (projectId: string, dateInvoiced?: string): string => {
+      const invoice: Invoice = {
+        id: generateId(),
+        projectId,
+        entryIds: [],
+        lineItems: [],
+        dateInvoiced: dateInvoiced ?? new Date().toISOString().split('T')[0],
+        status: 'draft',
+        totalAmount: 0,
+        totalMinutes: 0,
+        createdAt: new Date().toISOString(),
+      };
+      update((d) => ({
+        ...d,
+        invoices: [...d.invoices, invoice],
+      }));
+      return invoice.id;
+    },
+    [update]
+  );
+
+  const addEntriesToInvoice = useCallback(
+    (invoiceId: string, entryIds: string[]) => {
+      update((d) => {
+        const invoice = d.invoices.find((inv) => inv.id === invoiceId);
+        if (!invoice) return d;
+
+        const newEntryIds = [...new Set([...invoice.entryIds, ...entryIds])];
+        const relevantEntries = d.timeEntries.filter((e) => newEntryIds.includes(e.id));
+        const totalMins = relevantEntries.reduce((sum, e) => sum + e.duration, 0);
+
+        // Rebuild line items grouped by task
+        const taskGroups = new Map<string, { minutes: number; ids: string[] }>();
+        for (const e of relevantEntries) {
+          const existing = taskGroups.get(e.task) || { minutes: 0, ids: [] };
+          existing.minutes += e.duration;
+          existing.ids.push(e.id);
+          taskGroups.set(e.task, existing);
+        }
+
+        const hourlyRate = d.projects.find((p) => p.id === invoice.projectId)?.hourlyRate ?? d.waveConfig.defaultHourlyRate ?? 0;
+        const lineItems: InvoiceLineItem[] = Array.from(taskGroups.entries()).map(([task, g]) => ({
+          description: task,
+          quantity: parseFloat((g.minutes / 60).toFixed(2)),
+          unitPrice: hourlyRate,
+          entryIds: g.ids,
+        }));
+
+        const totalAmount = lineItems.reduce((sum, li) => sum + li.quantity * li.unitPrice, 0);
+
+        return {
+          ...d,
+          invoices: d.invoices.map((inv) =>
+            inv.id === invoiceId
+              ? { ...inv, entryIds: newEntryIds, lineItems, totalMinutes: totalMins, totalAmount }
+              : inv
+          ),
+          timeEntries: d.timeEntries.map((e) =>
+            entryIds.includes(e.id)
+              ? { ...e, billedStatus: 'billed' as const, invoiceId }
+              : e
+          ),
+        };
+      });
+    },
+    [update]
+  );
+
+  const updateInvoice = useCallback(
+    (invoiceId: string, fields: Partial<Pick<Invoice, 'dateInvoiced' | 'status' | 'waveInvoiceId' | 'waveViewUrl'>>) => {
+      update((d) => {
+        const invoice = d.invoices.find((inv) => inv.id === invoiceId);
+        if (!invoice) return d;
+
+        const updatedInvoice = { ...invoice, ...fields };
+        const markBilled = fields.status === 'sent' || fields.status === 'synced';
+        const markUnbilled = fields.status === 'draft';
+
+        return {
+          ...d,
+          invoices: d.invoices.map((inv) => (inv.id === invoiceId ? updatedInvoice : inv)),
+          timeEntries: markBilled || markUnbilled
+            ? d.timeEntries.map((e) =>
+                invoice.entryIds.includes(e.id)
+                  ? {
+                      ...e,
+                      billedStatus: markUnbilled ? 'unbilled' as const : 'billed' as const,
+                      invoiceId: markUnbilled ? undefined : invoiceId,
+                    }
+                  : e
+              )
+            : d.timeEntries,
+        };
+      });
+    },
+    [update]
+  );
+
+  const deleteInvoice = useCallback(
+    (invoiceId: string) => {
+      update((d) => {
+        const invoice = d.invoices.find((inv) => inv.id === invoiceId);
+        return {
+          ...d,
+          invoices: d.invoices.filter((inv) => inv.id !== invoiceId),
+          timeEntries: invoice
+            ? d.timeEntries.map((e) =>
+                invoice.entryIds.includes(e.id)
+                  ? { ...e, billedStatus: 'unbilled' as const, invoiceId: undefined }
+                  : e
+              )
+            : d.timeEntries,
+        };
+      });
+    },
+    [update]
+  );
+
+  // --- Billing (legacy compat) ---
   const markEntriesBilled = useCallback(
     (entryIds: string[], invoiceId: string) => {
       update((d) => ({
@@ -233,6 +353,10 @@ export function useAppData() {
     updateTimeEntry,
     deleteTimeEntry,
     addCustomTask,
+    createInvoiceRecord,
+    addEntriesToInvoice,
+    updateInvoice,
+    deleteInvoice,
     markEntriesBilled,
     markEntryUnbilled,
     updateWaveConfig,

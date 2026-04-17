@@ -15,6 +15,10 @@ function App() {
     updateTimeEntry,
     deleteTimeEntry,
     addCustomTask,
+    createInvoiceRecord,
+    addEntriesToInvoice,
+    updateInvoice,
+    deleteInvoice,
     markEntriesBilled,
     markEntryUnbilled,
     updateWaveConfig,
@@ -72,6 +76,11 @@ function App() {
           onStartTimer={startTimer}
           onStopTimer={stopTimer}
           onResetTimer={resetTimer}
+          invoices={data.invoices}
+          onCreateInvoice={createInvoiceRecord}
+          onAddEntriesToInvoice={addEntriesToInvoice}
+          onUpdateInvoice={updateInvoice}
+          onDeleteInvoice={deleteInvoice}
           onMarkEntriesBilled={markEntriesBilled}
           onMarkEntryUnbilled={markEntryUnbilled}
           onSetProjectHourlyRate={setProjectHourlyRate}

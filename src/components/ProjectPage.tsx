@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
-import type { Project, TimeEntry, TimerState, WaveConfig } from '../types';
+import type { Project, TimeEntry, TimerState, WaveConfig, Invoice } from '../types';
 import { TimeEntryForm } from './TimeEntryForm';
 import { TimeEntryList } from './TimeEntryList';
 import { EntryToolbar } from './EntryToolbar';
 import type { SortMode, DateFilter, BillingFilter } from './EntryToolbar';
 import { SummaryView } from './SummaryView';
-import { InvoiceBuilder } from './InvoiceBuilder';
+import { InvoiceList } from './InvoiceList';
 import { exportEntriesCSV } from '../utils/csv';
 import { formatDuration, formatDecimalHours } from '../utils/time';
 
@@ -27,6 +27,11 @@ interface Props {
   onStopTimer: () => number;
   onResetTimer: () => void;
   waveConfig: WaveConfig;
+  invoices: Invoice[];
+  onCreateInvoice: (projectId: string, dateInvoiced?: string) => string;
+  onAddEntriesToInvoice: (invoiceId: string, entryIds: string[]) => void;
+  onUpdateInvoice: (invoiceId: string, fields: Partial<Pick<Invoice, 'dateInvoiced' | 'status' | 'waveInvoiceId' | 'waveViewUrl'>>) => void;
+  onDeleteInvoice: (invoiceId: string) => void;
   onMarkEntriesBilled: (entryIds: string[], invoiceId: string) => void;
   onMarkEntryUnbilled: (entryId: string) => void;
   onSetProjectHourlyRate: (projectId: string, rate: number) => void;
@@ -49,7 +54,12 @@ export function ProjectPage({
   onStopTimer,
   onResetTimer,
   waveConfig,
-  onMarkEntriesBilled,
+  invoices,
+  onCreateInvoice,
+  onAddEntriesToInvoice,
+  onUpdateInvoice,
+  onDeleteInvoice,
+  onMarkEntriesBilled: _onMarkEntriesBilled,
   onMarkEntryUnbilled: _onMarkEntryUnbilled,
   onSetProjectHourlyRate: _onSetProjectHourlyRate,
   onOpenWaveSetup,
@@ -59,6 +69,10 @@ export function ProjectPage({
   const [activeFilter, setActiveFilter] = useState<DateFilter | null>(null);
   const [highlightedEntryId, setHighlightedEntryId] = useState<string | null>(null);
   const [billingFilter, setBillingFilter] = useState<BillingFilter>('all');
+
+  // Entry selection for invoicing
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showInvoicePicker, setShowInvoicePicker] = useState(false);
 
   // Inline title editing
   const [editingTitle, setEditingTitle] = useState(false);
@@ -134,6 +148,51 @@ export function ProjectPage({
   function handleDelete() {
     onDeleteProject(project.id);
     onBack();
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    const visibleIds = processedEntries.map((e) => e.id);
+    const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
+    if (allSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        visibleIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        visibleIds.forEach((id) => next.add(id));
+        return next;
+      });
+    }
+  }
+
+  const projectInvoices = invoices.filter((inv) => inv.projectId === project.id);
+  const draftInvoices = projectInvoices.filter((inv) => inv.status === 'draft');
+
+  function handleAddToInvoice(invoiceId: string) {
+    const ids = Array.from(selectedIds);
+    onAddEntriesToInvoice(invoiceId, ids);
+    setSelectedIds(new Set());
+    setShowInvoicePicker(false);
+  }
+
+  function handleAddToNewInvoice() {
+    const newId = onCreateInvoice(project.id);
+    const ids = Array.from(selectedIds);
+    onAddEntriesToInvoice(newId, ids);
+    setSelectedIds(new Set());
+    setShowInvoicePicker(false);
   }
 
   return (
@@ -239,11 +298,13 @@ export function ProjectPage({
 
       {/* Content */}
       {view === 'invoice' ? (
-        <InvoiceBuilder
-          entries={processedEntries}
+        <InvoiceList
+          invoices={projectInvoices}
+          entries={projectEntries}
           waveConfig={waveConfig}
-          hourlyRate={project.hourlyRate ?? waveConfig.defaultHourlyRate ?? 0}
-          onMarkEntriesBilled={onMarkEntriesBilled}
+          onUpdateInvoice={onUpdateInvoice}
+          onDeleteInvoice={onDeleteInvoice}
+          onNewInvoice={() => onCreateInvoice(project.id)}
           onOpenWaveSetup={onOpenWaveSetup}
         />
       ) : view === 'summary' ? (
@@ -279,6 +340,78 @@ export function ProjectPage({
             onBillingFilterChange={setBillingFilter}
           />
 
+          {/* Select all + action bar */}
+          {processedEntries.length > 0 && (
+            <div className="entry-select-bar">
+              <label className="entry-select-all">
+                <input
+                  type="checkbox"
+                  checked={processedEntries.length > 0 && processedEntries.every((e) => selectedIds.has(e.id))}
+                  onChange={toggleSelectAll}
+                />
+                <span>
+                  {selectedIds.size > 0
+                    ? `${selectedIds.size} selected`
+                    : 'Select all'}
+                </span>
+              </label>
+              {selectedIds.size > 0 && (
+                <div className="entry-select-actions">
+                  <span className="entry-select-total">
+                    {formatDuration(
+                      processedEntries
+                        .filter((e) => selectedIds.has(e.id))
+                        .reduce((sum, e) => sum + e.duration, 0)
+                    )}
+                  </span>
+                  <div className="invoice-picker-wrapper">
+                    <button
+                      className="btn btn-small btn-primary"
+                      onClick={() => setShowInvoicePicker(!showInvoicePicker)}
+                    >
+                      Add to Invoice
+                    </button>
+                    {showInvoicePicker && (
+                      <div className="invoice-picker-dropdown">
+                        <button
+                          className="invoice-picker-option"
+                          onClick={handleAddToNewInvoice}
+                        >
+                          + New Invoice
+                        </button>
+                        {draftInvoices.length > 0 && (
+                          <>
+                            <div className="invoice-picker-divider" />
+                            {draftInvoices.map((inv) => (
+                              <button
+                                key={inv.id}
+                                className="invoice-picker-option"
+                                onClick={() => handleAddToInvoice(inv.id)}
+                              >
+                                <span className="invoice-picker-date">{inv.dateInvoiced}</span>
+                                <span className="muted">
+                                  {inv.entryIds.length > 0
+                                    ? `${formatDuration(inv.totalMinutes)} · ${inv.entryIds.length} entries`
+                                    : 'Empty'}
+                                </span>
+                              </button>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    className="btn btn-small"
+                    onClick={() => setSelectedIds(new Set())}
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <TimeEntryList
             entries={processedEntries}
             customTasks={customTasks}
@@ -287,6 +420,8 @@ export function ProjectPage({
             onSaveCustomTask={onSaveCustomTask}
             highlightedEntryId={highlightedEntryId}
             onHighlightComplete={() => setHighlightedEntryId(null)}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
           />
         </div>
       )}

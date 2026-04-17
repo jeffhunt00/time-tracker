@@ -1,26 +1,22 @@
 import { useState, useMemo } from 'react';
-import type { TimeEntry, WaveConfig, InvoiceLineItem } from '../types';
+import type { TimeEntry, InvoiceLineItem } from '../types';
 import { formatDuration, formatDecimalHours } from '../utils/time';
-import { createInvoice, fetchCustomers } from '../utils/waveApi';
-import type { WaveCustomer } from '../utils/waveApi';
 
 type GroupMode = 'task' | 'reference' | 'single';
 type Step = 'select' | 'group' | 'confirm';
 
 interface Props {
-  entries: TimeEntry[]; // already filtered by project + date
-  waveConfig: WaveConfig;
+  entries: TimeEntry[]; // all project entries (builder filters to unbilled)
   hourlyRate: number;
-  onMarkEntriesBilled: (entryIds: string[], invoiceId: string) => void;
-  onOpenWaveSetup: () => void;
+  onCreateInvoice: (entryIds: string[], lineItems: InvoiceLineItem[], dateInvoiced: string, totalAmount: number, totalMinutes: number) => void;
+  onCancel: () => void;
 }
 
 export function InvoiceBuilder({
   entries,
-  waveConfig,
   hourlyRate,
-  onMarkEntriesBilled,
-  onOpenWaveSetup,
+  onCreateInvoice,
+  onCancel,
 }: Props) {
   const unbilledEntries = entries.filter((e) => e.billedStatus === 'unbilled');
 
@@ -30,15 +26,9 @@ export function InvoiceBuilder({
   );
   const [groupMode, setGroupMode] = useState<GroupMode>('task');
   const [editedDescriptions, setEditedDescriptions] = useState<Record<string, string>>({});
-  const [customerId, setCustomerId] = useState(waveConfig.defaultCustomerId ?? '');
-  const [customerName, setCustomerName] = useState(waveConfig.defaultCustomerName ?? '');
-  const [customers, setCustomers] = useState<WaveCustomer[]>([]);
   const [invoiceDate, setInvoiceDate] = useState(
     new Date().toISOString().split('T')[0]
   );
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState<{ id: string; viewUrl: string } | null>(null);
 
   const selectedEntries = unbilledEntries.filter((e) => selectedIds.has(e.id));
   const totalMinutes = selectedEntries.reduce((sum, e) => sum + e.duration, 0);
@@ -91,103 +81,19 @@ export function InvoiceBuilder({
     }
   }
 
-  async function loadCustomers() {
-    if (!waveConfig.businessId) return;
-    try {
-      const custs = await fetchCustomers(waveConfig.businessId);
-      setCustomers(custs);
-    } catch {
-      // Silently fail — user can still type
-    }
+  function handleCreate() {
+    const allEntryIds = lineItems.flatMap((li) => li.entryIds);
+    onCreateInvoice(allEntryIds, lineItems, invoiceDate, totalAmount, totalMinutes);
   }
 
-  async function handleSend() {
-    if (!waveConfig.businessId || !waveConfig.defaultProductId || !customerId) {
-      setError('Missing Wave configuration. Please configure your business, customer, and product in Settings.');
-      return;
-    }
-
-    setSending(true);
-    setError('');
-
-    try {
-      const result = await createInvoice(
-        waveConfig.businessId,
-        customerId,
-        invoiceDate,
-        lineItems.map((li) => ({
-          productId: waveConfig.defaultProductId!,
-          quantity: li.quantity,
-          unitPrice: li.unitPrice,
-          description: li.description,
-        }))
-      );
-
-      const allEntryIds = lineItems.flatMap((li) => li.entryIds);
-      onMarkEntriesBilled(allEntryIds, result.id);
-      setSuccess(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create invoice');
-    } finally {
-      setSending(false);
-    }
-  }
-
-  // Not connected
-  if (!waveConfig.connected) {
-    return (
-      <div className="invoice-builder">
-        <div className="invoice-empty">
-          <p>Connect to Wave to create invoices from your time entries.</p>
-          <button className="btn btn-primary" onClick={onOpenWaveSetup}>
-            Open Wave Settings
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Success state
-  if (success) {
-    return (
-      <div className="invoice-builder">
-        <div className="invoice-success">
-          <h3>Invoice Created</h3>
-          <p>
-            {lineItems.length} line {lineItems.length === 1 ? 'item' : 'items'} totaling{' '}
-            {formatDuration(totalMinutes)} (${totalAmount.toFixed(2)})
-          </p>
-          {success.viewUrl && (
-            <a
-              href={success.viewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-primary"
-            >
-              View in Wave
-            </a>
-          )}
-          <button
-            className="btn btn-small"
-            onClick={() => {
-              setSuccess(null);
-              setStep('select');
-              setSelectedIds(new Set(unbilledEntries.map((e) => e.id)));
-            }}
-          >
-            Create Another
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // No unbilled entries
   if (unbilledEntries.length === 0) {
     return (
       <div className="invoice-builder">
         <div className="invoice-empty">
-          <p>No unbilled entries to invoice. All entries have been billed.</p>
+          <p>No unbilled entries to invoice.</p>
+          <button className="btn btn-small" onClick={onCancel}>
+            Back to Invoices
+          </button>
         </div>
       </div>
     );
@@ -195,8 +101,6 @@ export function InvoiceBuilder({
 
   return (
     <div className="invoice-builder">
-      {error && <div className="wave-error">{error}</div>}
-
       {/* Step indicator */}
       <div className="invoice-steps">
         {(['select', 'group', 'confirm'] as Step[]).map((s, i) => (
@@ -212,7 +116,7 @@ export function InvoiceBuilder({
           >
             <span className="invoice-step-num">{i + 1}</span>
             <span className="invoice-step-label">
-              {s === 'select' ? 'Select' : s === 'group' ? 'Group' : 'Confirm'}
+              {s === 'select' ? 'Select' : s === 'group' ? 'Group' : 'Create'}
             </span>
           </button>
         ))}
@@ -233,7 +137,8 @@ export function InvoiceBuilder({
               </span>
             </label>
             <span className="invoice-select-total">
-              {formatDuration(totalMinutes)} &middot; ${totalAmount.toFixed(2)}
+              {formatDuration(totalMinutes)}
+              {totalAmount > 0 && <> &middot; ${totalAmount.toFixed(2)}</>}
             </span>
           </div>
 
@@ -245,19 +150,23 @@ export function InvoiceBuilder({
                   checked={selectedIds.has(entry.id)}
                   onChange={() => toggleEntry(entry.id)}
                 />
-                <span className="invoice-entry-task">{entry.task}</span>
+                <span className="summary-entry-date">{entry.date}</span>
+                <span className="summary-entry-duration">{formatDuration(entry.duration)}</span>
                 {entry.reference && (
-                  <span className="invoice-entry-ref">{entry.reference}</span>
+                  <span className="summary-entry-ref">{entry.reference}</span>
                 )}
-                <span className="invoice-entry-duration">
-                  {formatDuration(entry.duration)}
-                </span>
-                <span className="invoice-entry-date">{entry.date}</span>
+                <span className="summary-entry-task">{entry.task}</span>
+                {entry.description && (
+                  <span className="summary-entry-desc">{entry.description}</span>
+                )}
               </label>
             ))}
           </div>
 
           <div className="invoice-step-actions">
+            <button className="btn" onClick={onCancel}>
+              Cancel
+            </button>
             <button
               className="btn btn-primary"
               disabled={selectedIds.size === 0}
@@ -286,53 +195,50 @@ export function InvoiceBuilder({
           </div>
 
           <div className="invoice-line-items">
-            {lineItems.map((li, idx) => (
-              <div key={idx} className="invoice-line-item">
-                <input
-                  type="text"
-                  className="form-input"
-                  value={
-                    editedDescriptions[
-                      // recover the original group key
-                      groupMode === 'task'
-                        ? selectedEntries.find((e) => li.entryIds.includes(e.id))?.task ?? ''
-                        : groupMode === 'reference'
-                          ? selectedEntries.find((e) => li.entryIds.includes(e.id))?.reference ??
-                            selectedEntries.find((e) => li.entryIds.includes(e.id))?.task ??
-                            ''
-                          : 'All hours'
-                    ] ?? li.description
-                  }
-                  onChange={(e) => {
-                    const key =
-                      groupMode === 'task'
-                        ? selectedEntries.find((en) => li.entryIds.includes(en.id))?.task ?? ''
-                        : groupMode === 'reference'
-                          ? selectedEntries.find((en) => li.entryIds.includes(en.id))?.reference ??
-                            selectedEntries.find((en) => li.entryIds.includes(en.id))?.task ??
-                            ''
-                          : 'All hours';
-                    setEditedDescriptions((prev) => ({
-                      ...prev,
-                      [key]: e.target.value,
-                    }));
-                  }}
-                />
-                <div className="invoice-line-meta">
-                  <span>{formatDecimalHours(li.quantity * 60)}h</span>
-                  <span>&times; ${li.unitPrice.toFixed(2)}</span>
-                  <span className="invoice-line-total">
-                    = ${(li.quantity * li.unitPrice).toFixed(2)}
-                  </span>
+            {lineItems.map((li, idx) => {
+              const groupKey =
+                groupMode === 'task'
+                  ? selectedEntries.find((e) => li.entryIds.includes(e.id))?.task ?? ''
+                  : groupMode === 'reference'
+                    ? selectedEntries.find((e) => li.entryIds.includes(e.id))?.reference ??
+                      selectedEntries.find((e) => li.entryIds.includes(e.id))?.task ?? ''
+                    : 'All hours';
+
+              return (
+                <div key={idx} className="invoice-line-item">
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={editedDescriptions[groupKey] ?? li.description}
+                    onChange={(e) => {
+                      setEditedDescriptions((prev) => ({
+                        ...prev,
+                        [groupKey]: e.target.value,
+                      }));
+                    }}
+                  />
+                  <div className="invoice-line-meta">
+                    <span>{formatDecimalHours(li.quantity * 60)}h</span>
+                    {li.unitPrice > 0 && (
+                      <>
+                        <span>&times; ${li.unitPrice.toFixed(2)}</span>
+                        <span className="invoice-line-total">
+                          = ${(li.quantity * li.unitPrice).toFixed(2)}
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
-          <div className="invoice-total-row">
-            <span>Total</span>
-            <span>${totalAmount.toFixed(2)}</span>
-          </div>
+          {totalAmount > 0 && (
+            <div className="invoice-total-row">
+              <span>Total</span>
+              <span>${totalAmount.toFixed(2)}</span>
+            </div>
+          )}
 
           <div className="invoice-step-actions">
             <button className="btn" onClick={() => setStep('select')}>
@@ -340,50 +246,18 @@ export function InvoiceBuilder({
             </button>
             <button
               className="btn btn-primary"
-              onClick={() => {
-                setStep('confirm');
-                if (customers.length === 0) loadCustomers();
-              }}
+              onClick={() => setStep('confirm')}
             >
-              Next: Review & Send
+              Next: Review
             </button>
           </div>
         </div>
       )}
 
-      {/* Step 3: Confirm and send */}
+      {/* Step 3: Review and create */}
       {step === 'confirm' && (
         <div className="invoice-step-content">
           <div className="invoice-confirm-fields">
-            <div className="invoice-field">
-              <label className="wave-label">Customer</label>
-              {customers.length > 0 ? (
-                <select
-                  className="form-input"
-                  value={customerId}
-                  onChange={(e) => {
-                    setCustomerId(e.target.value);
-                    const c = customers.find((cu) => cu.id === e.target.value);
-                    setCustomerName(c?.name ?? '');
-                  }}
-                >
-                  <option value="">Select customer...</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <span className="muted">
-                  {customerName || 'No customer selected'}{' '}
-                  <button className="btn btn-small" onClick={onOpenWaveSetup}>
-                    Configure
-                  </button>
-                </span>
-              )}
-            </div>
-
             <div className="invoice-field">
               <label className="wave-label">Invoice Date</label>
               <input
@@ -401,17 +275,24 @@ export function InvoiceBuilder({
               <div key={idx} className="invoice-confirm-line">
                 <span>{li.description}</span>
                 <span>
-                  {formatDecimalHours(li.quantity * 60)}h &times; ${li.unitPrice.toFixed(2)} ={' '}
-                  <strong>${(li.quantity * li.unitPrice).toFixed(2)}</strong>
+                  {formatDecimalHours(li.quantity * 60)}h
+                  {li.unitPrice > 0 && (
+                    <>
+                      {' '}&times; ${li.unitPrice.toFixed(2)} ={' '}
+                      <strong>${(li.quantity * li.unitPrice).toFixed(2)}</strong>
+                    </>
+                  )}
                 </span>
               </div>
             ))}
-            <div className="invoice-total-row">
-              <span>Total</span>
-              <span>
-                <strong>${totalAmount.toFixed(2)}</strong>
-              </span>
-            </div>
+            {totalAmount > 0 && (
+              <div className="invoice-total-row">
+                <span>Total</span>
+                <span>
+                  <strong>${totalAmount.toFixed(2)}</strong>
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="invoice-step-actions">
@@ -420,10 +301,9 @@ export function InvoiceBuilder({
             </button>
             <button
               className="btn btn-primary"
-              disabled={sending || !customerId}
-              onClick={handleSend}
+              onClick={handleCreate}
             >
-              {sending ? 'Creating...' : 'Create Invoice in Wave'}
+              Create Invoice
             </button>
           </div>
         </div>

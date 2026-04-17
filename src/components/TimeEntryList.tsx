@@ -11,6 +11,8 @@ interface Props {
   onSaveCustomTask: (task: string) => void;
   highlightedEntryId: string | null;
   onHighlightComplete: () => void;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
 }
 
 export function TimeEntryList({
@@ -21,6 +23,8 @@ export function TimeEntryList({
   onSaveCustomTask,
   highlightedEntryId,
   onHighlightComplete,
+  selectedIds,
+  onToggleSelect,
 }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFields, setEditFields] = useState<{
@@ -95,6 +99,15 @@ export function TimeEntryList({
             ref={isHighlighted ? highlightRef : undefined}
             className={`time-entry-item ${isHighlighted ? 'entry-highlight' : ''}`}
           >
+            {onToggleSelect && selectedIds && (
+              <div className="entry-checkbox">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(entry.id)}
+                  onChange={() => onToggleSelect(entry.id)}
+                />
+              </div>
+            )}
             {editingId === entry.id ? (
               <div className="entry-edit">
                 <div className="form-row">
