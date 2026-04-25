@@ -353,15 +353,8 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: var(--bg);
+  background: transparent;
   border-radius: var(--radius-pill);
-  box-shadow: var(--shadow);
-  margin-bottom: 32px;
-}
-
-.add-bar.add-bar--expanded {
-  border-radius: var(--radius-pill) var(--radius-pill) 0 0;
-  margin-bottom: 0;
 }
 
 .add-bar-plus {
@@ -420,14 +413,13 @@
   color: var(--accent);
 }
 
-/* Expanded form (on white surface, no card container) */
+/* Expanded form (inside the same floating surface as the add bar) */
 .add-form-expanded {
-  padding: 20px 0 24px;
+  padding: 20px 16px 24px;
   display: flex;
   flex-direction: column;
   gap: 20px;
   border-top: 1px solid var(--border);
-  margin-bottom: 32px;
 }
 
 .duration-field {
@@ -449,14 +441,19 @@
 
 /* ── Time entry form ───────────────────────────── */
 .time-entry-form {
-  background: none;
+  background: var(--bg);
   border: none;
-  border-radius: 0;
-  padding: 0;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
   gap: 0;
-  margin-bottom: 0;
+  margin-bottom: 32px;
+  overflow: hidden;
+}
+
+.time-entry-form.form-expanded {
+  border-radius: 32px 32px 8px 8px;
 }
 
 .form-row {

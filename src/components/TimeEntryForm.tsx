@@ -128,7 +128,7 @@ export function TimeEntryForm({
   const durationPreview = parsedDuration && parsedDuration > 0 ? `= ${formatDuration(parsedDuration)}` : null;
 
   return (
-    <form className="time-entry-form" onSubmit={handleSubmit}>
+    <form className={`time-entry-form${!collapsed ? ' form-expanded' : ''}`} onSubmit={handleSubmit}>
       {/* Add bar (always visible) */}
       <div className={`add-bar${!collapsed ? ' add-bar--expanded' : ''}`}>
         <button
