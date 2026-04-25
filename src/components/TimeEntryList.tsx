@@ -97,7 +97,7 @@ export function TimeEntryList({
           <div
             key={entry.id}
             ref={isHighlighted ? highlightRef : undefined}
-            className={`time-entry-item ${isHighlighted ? 'entry-highlight' : ''}`}
+            className={`time-entry-item ${isHighlighted ? 'entry-highlight' : ''} ${entry.billedStatus === 'billed' ? 'is-billed' : ''}`}
           >
             {onToggleSelect && selectedIds && (
               <div className="entry-checkbox">
@@ -167,12 +167,9 @@ export function TimeEntryList({
             ) : (
               <>
                 <div className="entry-main">
-                  <span className="entry-task">{entry.task}</span>
-                  <span className={`billed-badge ${entry.billedStatus}`}>
-                    {entry.billedStatus === 'billed' ? 'Billed' : 'Unbilled'}
-                  </span>
-                  <span className="entry-duration">{formatDuration(entry.duration)}</span>
                   <span className="entry-date">{entry.date}</span>
+                  <span className="entry-duration">{formatDuration(entry.duration)}</span>
+                  <span className="entry-task">{entry.task}</span>
                 </div>
                 {entry.reference && (
                   <div className="entry-reference">{entry.reference}</div>

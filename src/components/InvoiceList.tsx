@@ -215,7 +215,7 @@ export function InvoiceList({
                               disabled={isSyncing}
                               onClick={() => handleSyncToWave(invoice)}
                             >
-                              {isSyncing ? 'Syncing...' : 'Sync to Wave'}
+                              {isSyncing ? 'Sending...' : 'Send to Wave'}
                             </button>
                           )}
                         </>
@@ -234,7 +234,7 @@ export function InvoiceList({
                               disabled={isSyncing}
                               onClick={() => handleSyncToWave(invoice)}
                             >
-                              {isSyncing ? 'Syncing...' : 'Sync to Wave'}
+                              {isSyncing ? 'Sending...' : 'Send to Wave'}
                             </button>
                           )}
                         </>
@@ -261,7 +261,7 @@ export function InvoiceList({
                       )}
                       {!waveConfig.connected && invoice.status !== 'synced' && (
                         <button className="btn btn-small" onClick={onOpenWaveSetup}>
-                          Connect Wave
+                          Send to Wave
                         </button>
                       )}
                       {deleteConfirmId === invoice.id ? (

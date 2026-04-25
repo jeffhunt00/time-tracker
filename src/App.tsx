@@ -29,6 +29,7 @@ function App() {
   } = useAppData();
 
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [autoFocusTitle, setAutoFocusTitle] = useState(false);
   const [showWaveSetup, setShowWaveSetup] = useState(false);
   const [waveToast, setWaveToast] = useState('');
 
@@ -50,6 +51,26 @@ function App() {
     }
   }, [updateWaveConfig]);
 
+  function handleNewProject() {
+    const now = new Date();
+    const month = now.toLocaleDateString('en-US', { month: 'short' });
+    const day = now.getDate();
+    const title = `New Project ${month} ${day}`;
+    const id = addProject(title);
+    setAutoFocusTitle(true);
+    setCurrentProjectId(id);
+  }
+
+  function handleSelectProject(id: string) {
+    setAutoFocusTitle(false);
+    setCurrentProjectId(id);
+  }
+
+  function handleBack() {
+    setAutoFocusTitle(false);
+    setCurrentProjectId(null);
+  }
+
   return (
     <div className="app">
       {waveToast && (
@@ -59,11 +80,12 @@ function App() {
       {currentProject ? (
         <ProjectPage
           project={currentProject}
+          autoFocusTitle={autoFocusTitle}
           allEntries={data.timeEntries}
           customTasks={data.customTasks}
           timerState={data.timerState}
           waveConfig={data.waveConfig}
-          onBack={() => setCurrentProjectId(null)}
+          onBack={handleBack}
           onUpdateProject={updateProject}
           onDeleteProject={(id) => {
             deleteProject(id);
@@ -90,8 +112,8 @@ function App() {
         <HomePage
           projects={data.projects}
           timeEntries={data.timeEntries}
-          onSelectProject={setCurrentProjectId}
-          onAddProject={addProject}
+          onSelectProject={handleSelectProject}
+          onNewProject={handleNewProject}
           onOpenWaveSetup={() => setShowWaveSetup(true)}
         />
       )}
