@@ -102,9 +102,6 @@ export function ProjectPage({
   onAddEntriesToInvoice,
   onUpdateInvoice,
   onDeleteInvoice,
-  onMarkEntriesBilled: _onMarkEntriesBilled,
-  onMarkEntryUnbilled: _onMarkEntryUnbilled,
-  onSetProjectHourlyRate: _onSetProjectHourlyRate,
   onOpenWaveSetup,
 }: Props) {
   const [view, setView] = useState<View>('entries');
