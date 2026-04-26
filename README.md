@@ -84,20 +84,7 @@ The following React components have Figma counterparts and Code Connect files (`
 | `TimeEntryForm` | `src/components/TimeEntryForm.tsx` | `time-entry-form_collapsed` |
 | `EntryToolbar` | `src/components/EntryToolbar.tsx` | `entry-toolbar` |
 
-#### Publishing Code Connect
-
-Code Connect publishing requires a Figma **Organization plan**. The `.figma.tsx` files and `figma.config.json` are fully configured and ready — run the following when on an eligible plan:
-
-```bash
-npm run figma:publish        # publish to Figma Dev Mode
-npm run figma:publish:dry    # dry-run (validate without publishing)
-```
-
-To authenticate, add your Figma personal access token (with `file_content:read` and `file_dev_resources:write` scopes) to `~/.bash_profile`:
-
-```bash
-export FIGMA_ACCESS_TOKEN=your_token_here
-```
+Each `.figma.tsx` file documents the Figma node URL, component props, and a usage example. Publishing these to Figma Dev Mode requires an **Organization plan** (`npm run figma:publish` once available, using `@figma/code-connect`). Until then the files serve as living documentation of the Figma ↔ code mapping.
 
 ### Design Tokens
 
