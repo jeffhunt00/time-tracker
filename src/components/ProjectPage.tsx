@@ -7,6 +7,12 @@ import type { SortMode, DateFilter, BillingFilter } from './EntryToolbar';
 import { InvoiceList } from './InvoiceList';
 import { exportEntriesCSV } from '../utils/csv';
 import { formatDuration, formatDecimalHours } from '../utils/time';
+import { Button } from './Button';
+import { EmptyState } from './EmptyState';
+import { TabBar } from './TabBar';
+import { EntryRow } from './EntryRow';
+import { ExpandableGroup } from './ExpandableGroup';
+import { DeleteConfirm } from './DeleteConfirm';
 
 type View = 'entries' | 'invoice';
 type GroupMode = 'none' | 'task' | 'date' | 'reference';
@@ -241,26 +247,19 @@ export function ProjectPage({
         </button>
         <nav className="project-page-topbar-right">
           {projectEntries.length > 0 && (
-            <button className="btn btn-small" onClick={handleExport}>
+            <Button size="small" onClick={handleExport}>
               Export CSV
-            </button>
+            </Button>
           )}
-          {showDeleteConfirm ? (
-            <div className="delete-confirm-inline">
-              <span className="delete-confirm-text">Delete this project?</span>
-              <button className="btn btn-small btn-danger" onClick={handleDelete}>Yes, Delete</button>
-              <button className="btn btn-small" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
-            </div>
-          ) : (
-            <button
-              className="btn-icon-text"
-              onClick={() => setShowDeleteConfirm(true)}
-              title="Delete project"
-              aria-label="Project options"
-            >
-              ···
-            </button>
-          )}
+          <DeleteConfirm
+            pending={showDeleteConfirm}
+            onRequest={() => setShowDeleteConfirm(true)}
+            onConfirm={handleDelete}
+            onCancel={() => setShowDeleteConfirm(false)}
+            triggerLabel="···"
+            confirmLabel="Delete this project?"
+            confirmActionLabel="Yes, Delete"
+          />
         </nav>
       </div>
 
@@ -306,20 +305,14 @@ export function ProjectPage({
 
       {/* Tab toggle */}
       <div className="project-page-view-toggle">
-        <nav className="view-toggle">
-          <button
-            className={`btn btn-small ${view === 'entries' ? 'btn-primary' : ''}`}
-            onClick={() => setView('entries')}
-          >
-            Entries
-          </button>
-          <button
-            className={`btn btn-small ${view === 'invoice' ? 'btn-primary' : ''}`}
-            onClick={() => setView('invoice')}
-          >
-            Invoice
-          </button>
-        </nav>
+        <TabBar
+          items={[
+            { value: 'entries' as View, label: 'Entries' },
+            { value: 'invoice' as View, label: 'Invoice' },
+          ]}
+          activeValue={view}
+          onChange={setView}
+        />
       </div>
 
       {/* Content */}
@@ -374,9 +367,9 @@ export function ProjectPage({
                     {formatDuration(processedEntries.filter((e) => selectedIds.has(e.id)).reduce((sum, e) => sum + e.duration, 0))}
                   </span>
                   <div className="invoice-picker-wrapper">
-                    <button className="btn btn-small btn-primary" onClick={() => setShowInvoicePicker(!showInvoicePicker)}>
+                    <Button variant="primary" size="small" onClick={() => setShowInvoicePicker(!showInvoicePicker)}>
                       Add to Invoice
-                    </button>
+                    </Button>
                     {showInvoicePicker && (
                       <div className="invoice-picker-dropdown">
                         <button className="invoice-picker-option" onClick={handleAddToNewInvoice}>+ New Invoice</button>
@@ -394,7 +387,7 @@ export function ProjectPage({
                       </div>
                     )}
                   </div>
-                  <button className="btn btn-small" onClick={() => setSelectedIds(new Set())}>Clear</button>
+                  <Button size="small" onClick={() => setSelectedIds(new Set())}>Clear</Button>
                 </div>
               )}
             </div>
@@ -416,92 +409,77 @@ export function ProjectPage({
           ) : groupMode === 'task' ? (
             <div className="summary-groups">
               {taskGroups.length === 0 ? (
-                <div className="empty-state"><p>No entries match the current filter.</p></div>
-              ) : taskGroups.map((group) => {
-                const expanded = expandedGroups.has(group.task);
-                return (
-                  <div key={group.task} className="summary-group-card">
-                    <button className="summary-group-header" onClick={() => toggleGroup(group.task)}>
-                      <span className="summary-group-expand">{expanded ? '▾' : '▸'}</span>
-                      <span className="summary-group-name">{group.task}</span>
-                      <span className="summary-group-hours">{formatDuration(group.totalMinutes)}<span className="muted"> ({formatDecimalHours(group.totalMinutes)}h)</span></span>
-                      <span className="summary-group-count">{group.count}</span>
-                    </button>
-                    {expanded && (
-                      <div className="summary-group-entries">
-                        {group.entries.sort((a, b) => b.date.localeCompare(a.date)).map((e) => (
-                          <div key={e.id} className="summary-entry">
-                            <span className="summary-entry-date">{e.date}</span>
-                            <span className="summary-entry-duration">{formatDuration(e.duration)}</span>
-                            {e.reference && <span className="summary-entry-ref">{e.reference}</span>}
-                            {e.description && <span className="summary-entry-desc">{e.description}</span>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                <EmptyState message="No entries match the current filter." />
+              ) : taskGroups.map((group) => (
+                <ExpandableGroup
+                  key={group.task}
+                  name={group.task}
+                  hours={`${formatDuration(group.totalMinutes)}`}
+                  count={group.count}
+                  expanded={expandedGroups.has(group.task)}
+                  onToggle={() => toggleGroup(group.task)}
+                >
+                  {group.entries.sort((a, b) => b.date.localeCompare(a.date)).map((e) => (
+                    <EntryRow
+                      key={e.id}
+                      date={e.date}
+                      duration={formatDuration(e.duration)}
+                      reference={e.reference}
+                      description={e.description}
+                    />
+                  ))}
+                </ExpandableGroup>
+              ))}
             </div>
           ) : groupMode === 'date' ? (
             <div className="summary-groups">
               {dateGroups.length === 0 ? (
-                <div className="empty-state"><p>No entries match the current filter.</p></div>
-              ) : dateGroups.map((group) => {
-                const expanded = expandedGroups.has(group.date);
-                return (
-                  <div key={group.date} className="summary-group-card">
-                    <button className="summary-group-header" onClick={() => toggleGroup(group.date)}>
-                      <span className="summary-group-expand">{expanded ? '▾' : '▸'}</span>
-                      <span className="summary-group-name">{formatDateLabel(group.date)}</span>
-                      <span className="summary-group-hours">{formatDuration(group.totalMinutes)}<span className="muted"> ({formatDecimalHours(group.totalMinutes)}h)</span></span>
-                      <span className="summary-group-count">{group.entries.length}</span>
-                    </button>
-                    {expanded && (
-                      <div className="summary-group-entries">
-                        {group.entries.map((e) => (
-                          <div key={e.id} className="summary-entry">
-                            <span className="summary-entry-duration">{formatDuration(e.duration)}</span>
-                            {e.reference && <span className="summary-entry-ref">{e.reference}</span>}
-                            <span className="summary-entry-task">{e.task}</span>
-                            {e.description && <span className="summary-entry-desc">{e.description}</span>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                <EmptyState message="No entries match the current filter." />
+              ) : dateGroups.map((group) => (
+                <ExpandableGroup
+                  key={group.date}
+                  name={formatDateLabel(group.date)}
+                  hours={`${formatDuration(group.totalMinutes)}`}
+                  count={group.entries.length}
+                  expanded={expandedGroups.has(group.date)}
+                  onToggle={() => toggleGroup(group.date)}
+                >
+                  {group.entries.map((e) => (
+                    <EntryRow
+                      key={e.id}
+                      duration={formatDuration(e.duration)}
+                      task={e.task}
+                      reference={e.reference}
+                      description={e.description}
+                    />
+                  ))}
+                </ExpandableGroup>
+              ))}
             </div>
           ) : (
             <div className="summary-groups">
               {refGroups.length === 0 ? (
-                <div className="empty-state"><p>No entries match the current filter.</p></div>
-              ) : refGroups.map((group) => {
-                const expanded = expandedGroups.has(group.reference);
-                return (
-                  <div key={group.reference} className="summary-group-card">
-                    <button className="summary-group-header" onClick={() => toggleGroup(group.reference)}>
-                      <span className="summary-group-expand">{expanded ? '▾' : '▸'}</span>
-                      <span className="summary-group-name">{group.reference}</span>
-                      <span className="summary-group-hours">{formatDuration(group.totalMinutes)}<span className="muted"> ({formatDecimalHours(group.totalMinutes)}h)</span></span>
-                      <span className="summary-group-count">{group.count}</span>
-                    </button>
-                    {expanded && (
-                      <div className="summary-group-entries">
-                        {group.entries.sort((a, b) => b.date.localeCompare(a.date)).map((e) => (
-                          <div key={e.id} className="summary-entry">
-                            <span className="summary-entry-date">{e.date}</span>
-                            <span className="summary-entry-duration">{formatDuration(e.duration)}</span>
-                            <span className="summary-entry-task">{e.task}</span>
-                            {e.description && <span className="summary-entry-desc">{e.description}</span>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                <EmptyState message="No entries match the current filter." />
+              ) : refGroups.map((group) => (
+                <ExpandableGroup
+                  key={group.reference}
+                  name={group.reference}
+                  hours={`${formatDuration(group.totalMinutes)}`}
+                  count={group.count}
+                  expanded={expandedGroups.has(group.reference)}
+                  onToggle={() => toggleGroup(group.reference)}
+                >
+                  {group.entries.sort((a, b) => b.date.localeCompare(a.date)).map((e) => (
+                    <EntryRow
+                      key={e.id}
+                      date={e.date}
+                      duration={formatDuration(e.duration)}
+                      task={e.task}
+                      description={e.description}
+                    />
+                  ))}
+                </ExpandableGroup>
+              ))}
             </div>
           )}
         </div>

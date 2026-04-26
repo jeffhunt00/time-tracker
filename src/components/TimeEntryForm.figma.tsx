@@ -19,7 +19,7 @@ figma.connect(
     example: () => (
       <TimeEntryForm
         projectId="project-id"
-        timerState={{ isRunning: false, elapsed: 0, projectId: null, task: null, startTime: null }}
+        timerState={{ isRunning: false, elapsed: 0, projectId: 'project-id', task: '', startTime: null }}
         customTasks={[]}
         onAddEntry={(entry) => console.log(entry)}
         onStartTimer={(projectId, task) => console.log(projectId, task)}

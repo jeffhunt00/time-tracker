@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { TabBar } from './TabBar';
 
 export type SortMode = 'date-desc' | 'date-asc' | 'created-desc' | 'created-asc';
 export type BillingFilter = 'all' | 'unbilled' | 'billed';
@@ -86,30 +87,29 @@ export function EntryToolbar({
       <div className="toolbar-row">
         <div className="toolbar-left">
           {onGroupModeChange && (
-            <div className="billing-filter">
-              {(['none', 'task', 'date', 'reference'] as GroupMode[]).map((m) => (
-                <button
-                  key={m}
-                  className={`btn btn-small ${groupMode === m ? 'btn-primary' : ''}`}
-                  onClick={() => onGroupModeChange(m)}
-                >
-                  {m === 'none' ? 'All' : m.charAt(0).toUpperCase() + m.slice(1)}
-                </button>
-              ))}
-            </div>
+            <TabBar
+              className="billing-filter"
+              items={[
+                { value: 'none' as GroupMode, label: 'All' },
+                { value: 'task' as GroupMode, label: 'Task' },
+                { value: 'date' as GroupMode, label: 'Date' },
+                { value: 'reference' as GroupMode, label: 'Reference' },
+              ]}
+              activeValue={groupMode}
+              onChange={onGroupModeChange}
+            />
           )}
           {onBillingFilterChange && (
-            <div className="billing-filter">
-              {(['all', 'unbilled', 'billed'] as BillingFilter[]).map((f) => (
-                <button
-                  key={f}
-                  className={`btn btn-small ${billingFilter === f ? 'btn-primary' : ''}`}
-                  onClick={() => onBillingFilterChange(f)}
-                >
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
-                </button>
-              ))}
-            </div>
+            <TabBar
+              className="billing-filter"
+              items={[
+                { value: 'all' as BillingFilter, label: 'All' },
+                { value: 'unbilled' as BillingFilter, label: 'Unbilled' },
+                { value: 'billed' as BillingFilter, label: 'Billed' },
+              ]}
+              activeValue={billingFilter}
+              onChange={onBillingFilterChange}
+            />
           )}
           {activeFilter ? (
             <span className="filter-badge">

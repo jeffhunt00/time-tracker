@@ -1,6 +1,8 @@
 import type { Project, TimeEntry } from '../types';
 import { formatDuration } from '../utils/time';
 import { ProjectCard } from './ProjectCard';
+import { Button } from './Button';
+import { EmptyState } from './EmptyState';
 
 interface Props {
   projects: Project[];
@@ -38,17 +40,17 @@ export function HomePage({ projects, timeEntries, onSelectProject, onNewProject,
         <div className="home-title-row">
           <h1>Time Tracker</h1>
           <nav>
-            <button className="btn btn-primary btn-small" onClick={onNewProject}>
+            <Button variant="primary" size="small" onClick={onNewProject}>
               New project
-            </button>
-            <button
-              className="btn-icon-text"
+            </Button>
+            <Button
+              variant="icon-text"
               onClick={onOpenWaveSetup}
               title="Settings"
               aria-label="Settings"
             >
               ···
-            </button>
+            </Button>
           </nav>
         </div>
         {totalTrackedMinutes > 0 && (
@@ -61,13 +63,16 @@ export function HomePage({ projects, timeEntries, onSelectProject, onNewProject,
 
       <div className="home-content">
         {projects.length === 0 ? (
-          <div className="home-empty">
-            <h2>Start tracking your time</h2>
-            <p>Create your first project to get started.</p>
-            <button className="btn btn-primary" onClick={onNewProject}>
-              Create your first project
-            </button>
-          </div>
+          <EmptyState
+            mode="hero"
+            heading="Start tracking your time"
+            message="Create your first project to get started."
+            action={
+              <Button variant="primary" onClick={onNewProject}>
+                Create your first project
+              </Button>
+            }
+          />
         ) : (
           <div className="project-grid">
             {projects.map((project) => {
