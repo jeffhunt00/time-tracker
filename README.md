@@ -67,6 +67,62 @@ Starts the Express server on [http://localhost:4000](http://localhost:4000), ser
 
 ---
 
+## Figma Design System
+
+The app has a paired Figma file that mirrors the component and token structure in code. The integration uses **Figma Code Connect** for component mapping and a local **token sync script** for design tokens.
+
+Figma file: [Time Tracker v2](https://www.figma.com/design/l3WUHgIFDSntp3Tr0ugXAc/Time-Tracker)
+
+### Components
+
+The following React components have Figma counterparts and Code Connect files (`.figma.tsx`):
+
+| Component | File | Figma node |
+|---|---|---|
+| `Button` | `src/components/Button.tsx` | `btn-primary_small`, `btn-icon-text` |
+| `ProjectCard` | `src/components/ProjectCard.tsx` | `project-card` |
+| `TimeEntryForm` | `src/components/TimeEntryForm.tsx` | `time-entry-form_collapsed` |
+| `EntryToolbar` | `src/components/EntryToolbar.tsx` | `entry-toolbar` |
+
+#### Publishing Code Connect
+
+Code Connect publishing requires a Figma **Organization plan**. The `.figma.tsx` files and `figma.config.json` are fully configured and ready — run the following when on an eligible plan:
+
+```bash
+npm run figma:publish        # publish to Figma Dev Mode
+npm run figma:publish:dry    # dry-run (validate without publishing)
+```
+
+To authenticate, add your Figma personal access token (with `file_content:read` and `file_dev_resources:write` scopes) to `~/.bash_profile`:
+
+```bash
+export FIGMA_ACCESS_TOKEN=your_token_here
+```
+
+### Design Tokens
+
+CSS custom properties in `src/index.css` are the source of truth for all design tokens. A mirrored **"Time Tracker Tokens"** variable collection exists in Figma.
+
+The token values are also snapshotted in `tokens.json` at the project root, which acts as the handshake between Figma and code. Commit this file — it lets you see token drift in git diffs.
+
+#### Token sync commands
+
+```bash
+npm run figma:tokens          # diff tokens.json vs src/index.css
+npm run figma:tokens:apply    # apply tokens.json values → src/index.css
+npm run figma:tokens:export   # export current CSS tokens → tokens.json
+```
+
+#### Workflow
+
+**Figma → code:** When a token value changes in Figma, update `tokens.json` manually (or ask Claude to pull the new value via the Figma MCP), then run `npm run figma:tokens:apply`.
+
+**Code → Figma:** Edit `src/index.css` directly, run `npm run figma:tokens:export` to re-sync `tokens.json`, then update the matching variable in Figma.
+
+> Note: Figma's Variables REST API requires an Organization plan. The sync script uses `tokens.json` as an intermediary rather than calling the API directly.
+
+---
+
 ## Wave Invoice Integration
 
 The app can create invoices directly in [Wave accounting](https://www.waveapps.com/) from your tracked time entries.
@@ -266,15 +322,21 @@ server/
 ├── wave-token.ts         # Token storage and auto-refresh
 └── .env                  # Wave credentials (gitignored)
 scripts/
-└── serve.sh              # Launcher script for macOS LaunchAgent
+├── serve.sh              # Launcher script for macOS LaunchAgent
+└── sync-tokens.js        # Design token diff/sync between tokens.json and index.css
 src/
 ├── components/
+│   ├── Button.tsx         # Atomic button component (variants: primary, danger, ghost, icon-text)
+│   ├── Button.figma.tsx   # Figma Code Connect mapping for Button
+│   ├── ProjectCard.tsx    # Project summary card
+│   ├── ProjectCard.figma.tsx # Figma Code Connect mapping for ProjectCard
 │   ├── HomePage.tsx       # Project list / landing page
 │   ├── ProjectPage.tsx    # Single project view (tracker + summary + invoice)
 │   ├── TimeEntryForm.tsx  # Manual entry form + timer
+│   ├── TimeEntryForm.figma.tsx # Figma Code Connect mapping for TimeEntryForm
 │   ├── TimeEntryList.tsx  # Entry list with edit/delete and billed badges
 │   ├── EntryToolbar.tsx   # Sort, date filter, and billing filter
-│   ├── SummaryView.tsx    # Grouped summary (by task, date, or reference)
+│   ├── EntryToolbar.figma.tsx  # Figma Code Connect mapping for EntryToolbar
 │   ├── InvoiceList.tsx    # Invoice list with expand, status badges, and actions
 │   ├── WaveSetup.tsx      # Wave connection and configuration modal
 │   └── TaskSelector.tsx   # Task dropdown with custom task support

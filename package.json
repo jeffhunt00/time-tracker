@@ -8,7 +8,12 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "tsx server/index.ts"
+    "start": "tsx server/index.ts",
+    "figma:publish": "figma connect publish",
+    "figma:publish:dry": "figma connect publish --dry-run",
+    "figma:tokens": "node scripts/sync-tokens.js",
+    "figma:tokens:apply": "node scripts/sync-tokens.js --apply",
+    "figma:tokens:export": "node scripts/sync-tokens.js --export"
   },
   "dependencies": {
     "dotenv": "^17.3.1",

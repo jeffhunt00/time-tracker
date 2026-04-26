@@ -1,5 +1,6 @@
 import type { Project, TimeEntry } from '../types';
-import { formatDuration, formatDecimalHours } from '../utils/time';
+import { formatDuration } from '../utils/time';
+import { ProjectCard } from './ProjectCard';
 
 interface Props {
   projects: Project[];
@@ -72,33 +73,14 @@ export function HomePage({ projects, timeEntries, onSelectProject, onNewProject,
             {projects.map((project) => {
               const { count, totalMinutes, lastEntry } = getProjectStats(project.id, timeEntries);
               return (
-                <button
+                <ProjectCard
                   key={project.id}
-                  className="project-card"
+                  title={project.title}
+                  totalMinutes={totalMinutes}
+                  entryCount={count}
+                  lastWorkedLabel={lastEntry ? formatLastWorked(lastEntry.date) : undefined}
                   onClick={() => onSelectProject(project.id)}
-                >
-                  <div className="project-card-body">
-                    <h2 className="project-card-title">{project.title}</h2>
-                    <div className="project-card-hours">
-                      {totalMinutes > 0 ? (
-                        <>
-                          {formatDuration(totalMinutes)}
-                          <span className="project-card-decimal"> · {formatDecimalHours(totalMinutes)}h</span>
-                        </>
-                      ) : (
-                        <span className="project-card-no-time">No time logged</span>
-                      )}
-                    </div>
-                    <div className="project-card-meta">
-                      {count > 0 && (
-                        <span>{count} {count === 1 ? 'entry' : 'entries'}</span>
-                      )}
-                      {lastEntry && (
-                        <span>Last worked {formatLastWorked(lastEntry.date)}</span>
-                      )}
-                    </div>
-                  </div>
-                </button>
+                />
               );
             })}
           </div>

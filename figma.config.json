@@ -1,0 +1,6 @@
+{
+  "codeConnect": {
+    "include": ["src/**/*.tsx"],
+    "parser": "react"
+  }
+}

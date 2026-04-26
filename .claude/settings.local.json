@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(cp -r /Users/jeff/Development/time-tracker/time-tracker-app/* /Users/jeff/Development/time-tracker/)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ' *)",
+      "Bash(git checkout *)",
+      "WebFetch(domain:localhost)",
+      "Bash(curl -s http://localhost:5173/)",
+      "mcp__plugin_figma_figma__get_metadata",
+      "mcp__plugin_figma_figma__use_figma",
+      "mcp__plugin_figma_figma__get_screenshot",
+      "WebFetch(domain:www.figma.com)",
+      "mcp__plugin_figma_figma__get_design_context",
+      "mcp__plugin_figma_figma__get_variable_defs",
+      "Bash(npm outdated *)",
+      "Bash(npm view *)"
+    ]
+  }
+}
