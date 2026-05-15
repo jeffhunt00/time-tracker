@@ -1,6 +1,6 @@
 # Time Tracker
 
-A clean, minimal time tracking app for freelancers and solo practitioners. Track hours across multiple projects, log entries manually or with a live timer, filter and sort your history, and create invoices in Wave accounting.
+A clean, minimal time tracking app for freelancers and solo practitioners. Track hours across multiple projects, log entries manually or with a live timer, filter and sort your history, and create invoices — with optional Wave accounting sync.
 
 Built with React, TypeScript, and Vite. All data is stored locally in the browser via localStorage. The Express backend handles Wave OAuth and API proxying only — no database, no accounts.
 
@@ -11,11 +11,12 @@ Built with React, TypeScript, and Vite. All data is stored locally in the browse
 - **Project-based tracking** — Create as many projects as you need; each gets its own timeline of entries
 - **Manual entry or live timer** — Type in a duration (`1h 30m`, `1.5`, `90m`, `1:30`) or run the stopwatch and let it fill in automatically
 - **Preset + custom tasks** — Choose from common design/dev task types or save your own
-- **Reference field** — Tag entries with Jira tickets, PO numbers, or any reference for grouping
+- **Reference field** — Tag entries with Jira tickets, PO numbers, or any reference for grouping and invoicing
 - **Sort & filter** — Sort entries by entry date or creation time (ascending/descending); filter by Today, This Week, This Month, custom date range, or billed/unbilled status
 - **Summary view** — See totals grouped by task type, by date, or by reference, with expandable breakdowns per group
-- **Invoice builder** — Select unbilled entries, group them into line items (by task, reference, or single item), preview totals, and create an invoice directly in Wave
-- **Billing status** — Each entry tracks billed/unbilled status with a visual badge; filter to see what's been invoiced
+- **Invoice management** — Select entries via checkboxes on the Tracker tab and add them to a new or existing draft invoice; invoices track line items, total hours, and status
+- **Optional Wave sync** — Invoices can be manually marked as sent or synced to Wave accounting, which pushes line items and marks entries as billed
+- **Billing status** — Each entry tracks billed/unbilled status with a visual badge; entries are automatically marked billed when added to an invoice
 - **Export CSV** — Downloads a spreadsheet of the current project's entries respecting any active filter/sort, including reference and billed status
 - **Yellow highlight** — Newly added entries briefly highlight so you can spot them instantly
 - **Inline editing** — Edit or delete any entry directly in the list; rename projects by clicking the title
@@ -66,16 +67,68 @@ Starts the Express server on [http://localhost:4000](http://localhost:4000), ser
 
 ---
 
+## Figma Design System
+
+The app has a paired Figma file that mirrors the component and token structure in code. The integration uses **Figma Code Connect** for component mapping and a local **token sync script** for design tokens.
+
+Figma file: [Time Tracker v2](https://www.figma.com/design/l3WUHgIFDSntp3Tr0ugXAc/Time-Tracker)
+
+### Components
+
+The following React components have Figma counterparts and Code Connect files (`.figma.tsx`):
+
+| Component | File | Figma node |
+|---|---|---|
+| `Button` | `src/components/Button.tsx` | `btn-primary_small`, `btn-icon-text` |
+| `ProjectCard` | `src/components/ProjectCard.tsx` | `project-card` |
+| `TimeEntryForm` | `src/components/TimeEntryForm.tsx` | `time-entry-form_collapsed` |
+| `EntryToolbar` | `src/components/EntryToolbar.tsx` | `entry-toolbar` |
+
+Each `.figma.tsx` file documents the Figma node URL, component props, and a usage example. Publishing these to Figma Dev Mode requires an **Organization plan** (`npm run figma:publish` once available, using `@figma/code-connect`). Until then the files serve as living documentation of the Figma ↔ code mapping.
+
+### Design Tokens
+
+CSS custom properties in `src/index.css` are the source of truth for all design tokens. A mirrored **"Time Tracker Tokens"** variable collection exists in Figma.
+
+The token values are also snapshotted in `tokens.json` at the project root, which acts as the handshake between Figma and code. Commit this file — it lets you see token drift in git diffs.
+
+#### Token sync commands
+
+```bash
+npm run figma:tokens          # diff tokens.json vs src/index.css
+npm run figma:tokens:apply    # apply tokens.json values → src/index.css
+npm run figma:tokens:export   # export current CSS tokens → tokens.json
+```
+
+#### Workflow
+
+**Figma → code:** When a token value changes in Figma, update `tokens.json` manually (or ask Claude to pull the new value via the Figma MCP), then run `npm run figma:tokens:apply`.
+
+**Code → Figma:** Edit `src/index.css` directly, run `npm run figma:tokens:export` to re-sync `tokens.json`, then update the matching variable in Figma.
+
+> Note: Figma's Variables REST API requires an Organization plan. The sync script uses `tokens.json` as an intermediary rather than calling the API directly.
+
+---
+
 ## Wave Invoice Integration
 
 The app can create invoices directly in [Wave accounting](https://www.waveapps.com/) from your tracked time entries.
 
-### How it works
+### How invoicing works
+
+Invoicing doesn't require Wave — you can create and manage invoices locally and mark them as sent manually.
+
+1. **Track time** — Log entries as usual; optionally add a Reference (Jira ticket, PO#) for grouping
+2. **Select entries** — On the Tracker tab, check the entries you want to invoice (the select-all control respects any active filter)
+3. **Add to invoice** — Click "Add to Invoice" and choose to create a new invoice or add to an existing draft
+4. **Review** — On the Invoice tab, expand any invoice to see its line items and entries; edit the invoice date by clicking it
+5. **Mark as sent** — Click "Mark as Sent" to record it as invoiced without touching Wave, or sync to Wave if connected
+
+### Connecting to Wave (optional)
 
 1. **Connect** — Open Settings, click "Connect to Wave", authorize via OAuth
 2. **Configure** — Select your Wave business, default customer, product/service, and hourly rate
-3. **Track time** — Log entries as usual; optionally add a Reference (Jira ticket, PO#) for grouping
-4. **Invoice** — Go to a project's Invoice tab, select unbilled entries, group them into line items, and send to Wave
+3. **Sync** — On any draft or sent invoice, click "Sync to Wave" to push it as a Wave invoice and get a direct link
 
 ### Setting up the Wave Developer App
 
@@ -302,16 +355,22 @@ server/
 ├── wave-token.ts         # Token storage and auto-refresh
 └── .env                  # Wave credentials (gitignored)
 scripts/
-└── serve.sh              # Launcher script for macOS LaunchAgent
+├── serve.sh              # Launcher script for macOS LaunchAgent
+└── sync-tokens.js        # Design token diff/sync between tokens.json and index.css
 src/
 ├── components/
+│   ├── Button.tsx         # Atomic button component (variants: primary, danger, ghost, icon-text)
+│   ├── Button.figma.tsx   # Figma Code Connect mapping for Button
+│   ├── ProjectCard.tsx    # Project summary card
+│   ├── ProjectCard.figma.tsx # Figma Code Connect mapping for ProjectCard
 │   ├── HomePage.tsx       # Project list / landing page
 │   ├── ProjectPage.tsx    # Single project view (tracker + summary + invoice)
 │   ├── TimeEntryForm.tsx  # Manual entry form + timer
+│   ├── TimeEntryForm.figma.tsx # Figma Code Connect mapping for TimeEntryForm
 │   ├── TimeEntryList.tsx  # Entry list with edit/delete and billed badges
 │   ├── EntryToolbar.tsx   # Sort, date filter, and billing filter
-│   ├── SummaryView.tsx    # Grouped summary (by task, date, or reference)
-│   ├── InvoiceBuilder.tsx # Three-step invoice creation flow
+│   ├── EntryToolbar.figma.tsx  # Figma Code Connect mapping for EntryToolbar
+│   ├── InvoiceList.tsx    # Invoice list with expand, status badges, and actions
 │   ├── WaveSetup.tsx      # Wave connection and configuration modal
 │   └── TaskSelector.tsx   # Task dropdown with custom task support
 ├── hooks/

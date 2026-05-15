@@ -33,3 +33,4 @@ scripts/serve.sh
 .claude/settings.local.json
 .claude/worktrees/
 TimeTracker-PRD.md
+.env

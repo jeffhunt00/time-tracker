@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import type { TimeEntry } from '../types';
 import { formatDuration, parseDuration } from '../utils/time';
 import { TaskSelector } from './TaskSelector';
+import { Button } from './Button';
+import { EmptyState } from './EmptyState';
+import { DeleteConfirm } from './DeleteConfirm';
 
 interface Props {
   entries: TimeEntry[];
@@ -72,20 +75,9 @@ export function TimeEntryList({
     setEditingId(null);
   }
 
-  function confirmDelete(id: string) {
-    if (deleteConfirm === id) {
-      onDelete(id);
-      setDeleteConfirm(null);
-    } else {
-      setDeleteConfirm(id);
-    }
-  }
-
   if (entries.length === 0) {
     return (
-      <div className="empty-state">
-        <p>No time entries yet. Use the form above to log your first entry.</p>
-      </div>
+      <EmptyState message="No time entries yet. Use the form above to log your first entry." />
     );
   }
 
@@ -97,7 +89,7 @@ export function TimeEntryList({
           <div
             key={entry.id}
             ref={isHighlighted ? highlightRef : undefined}
-            className={`time-entry-item ${isHighlighted ? 'entry-highlight' : ''}`}
+            className={`time-entry-item ${isHighlighted ? 'entry-highlight' : ''} ${entry.billedStatus === 'billed' ? 'is-billed' : ''}`}
           >
             {onToggleSelect && selectedIds && (
               <div className="entry-checkbox">
@@ -156,23 +148,20 @@ export function TimeEntryList({
                   placeholder="Description"
                 />
                 <div className="entry-actions">
-                  <button className="btn btn-small btn-primary" onClick={() => saveEdit(entry.id)}>
+                  <Button variant="primary" size="small" onClick={() => saveEdit(entry.id)}>
                     Save
-                  </button>
-                  <button className="btn btn-small" onClick={() => setEditingId(null)}>
+                  </Button>
+                  <Button size="small" onClick={() => setEditingId(null)}>
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (
               <>
                 <div className="entry-main">
-                  <span className="entry-task">{entry.task}</span>
-                  <span className={`billed-badge ${entry.billedStatus}`}>
-                    {entry.billedStatus === 'billed' ? 'Billed' : 'Unbilled'}
-                  </span>
-                  <span className="entry-duration">{formatDuration(entry.duration)}</span>
                   <span className="entry-date">{entry.date}</span>
+                  <span className="entry-duration">{formatDuration(entry.duration)}</span>
+                  <span className="entry-task">{entry.task}</span>
                 </div>
                 {entry.reference && (
                   <div className="entry-reference">{entry.reference}</div>
@@ -181,20 +170,16 @@ export function TimeEntryList({
                   <div className="entry-description">{entry.description}</div>
                 )}
                 <div className="entry-actions">
-                  <button className="btn btn-small" onClick={() => startEdit(entry)}>
+                  <Button size="small" onClick={() => startEdit(entry)}>
                     Edit
-                  </button>
-                  <button
-                    className={`btn btn-small ${deleteConfirm === entry.id ? 'btn-danger' : ''}`}
-                    onClick={() => confirmDelete(entry.id)}
-                  >
-                    {deleteConfirm === entry.id ? 'Confirm Delete' : 'Delete'}
-                  </button>
-                  {deleteConfirm === entry.id && (
-                    <button className="btn btn-small" onClick={() => setDeleteConfirm(null)}>
-                      Cancel
-                    </button>
-                  )}
+                  </Button>
+                  <DeleteConfirm
+                    pending={deleteConfirm === entry.id}
+                    onRequest={() => setDeleteConfirm(entry.id)}
+                    onConfirm={() => { onDelete(entry.id); setDeleteConfirm(null); }}
+                    onCancel={() => setDeleteConfirm(null)}
+                    confirmActionLabel="Confirm Delete"
+                  />
                 </div>
               </>
             )}

@@ -2,6 +2,12 @@ import { useState } from 'react';
 import type { Invoice, TimeEntry, WaveConfig } from '../types';
 import { formatDuration, formatDecimalHours } from '../utils/time';
 import { createInvoice as createWaveInvoice } from '../utils/waveApi';
+import { Button } from './Button';
+import { EmptyState } from './EmptyState';
+import { StatusBadge } from './StatusBadge';
+import { CountPill } from './CountPill';
+import { EntryRow } from './EntryRow';
+import { DeleteConfirm } from './DeleteConfirm';
 
 interface Props {
   invoices: Invoice[];
@@ -85,17 +91,15 @@ export function InvoiceList({
     <div className="invoice-list">
       <div className="invoice-list-header">
         <h3 className="invoice-list-title">Invoices</h3>
-        <button className="btn btn-primary btn-small" onClick={onNewInvoice}>
+        <Button variant="primary" size="small" onClick={onNewInvoice}>
           New Invoice
-        </button>
+        </Button>
       </div>
 
       {error && <div className="wave-error">{error}</div>}
 
       {sorted.length === 0 ? (
-        <div className="invoice-empty">
-          <p>No invoices yet. Create one from your time entries.</p>
-        </div>
+        <EmptyState className="invoice-empty" message="No invoices yet. Create one from your time entries." />
       ) : (
         <div className="invoice-list-items">
           {sorted.map((invoice) => {
@@ -149,10 +153,8 @@ export function InvoiceList({
                     </span>
                   </div>
                   <div className="invoice-card-badges">
-                    <span className={`invoice-status-badge invoice-status-${invoice.status}`}>
-                      {invoice.status === 'synced' ? 'Wave' : invoice.status === 'sent' ? 'Sent' : 'Draft'}
-                    </span>
-                    <span className="summary-group-count">{invoice.entryIds.length}</span>
+                    <StatusBadge status={invoice.status} />
+                    <CountPill count={invoice.entryIds.length} />
                   </div>
                 </button>
 
@@ -184,17 +186,14 @@ export function InvoiceList({
                         {invoiceEntries
                           .sort((a, b) => b.date.localeCompare(a.date))
                           .map((e) => (
-                            <div key={e.id} className="summary-entry">
-                              <span className="summary-entry-date">{e.date}</span>
-                              <span className="summary-entry-duration">{formatDuration(e.duration)}</span>
-                              <span className="summary-entry-task">{e.task}</span>
-                              {e.reference && (
-                                <span className="summary-entry-ref">{e.reference}</span>
-                              )}
-                              {e.description && (
-                                <span className="summary-entry-desc">{e.description}</span>
-                              )}
-                            </div>
+                            <EntryRow
+                              key={e.id}
+                              date={e.date}
+                              duration={formatDuration(e.duration)}
+                              task={e.task}
+                              reference={e.reference}
+                              description={e.description}
+                            />
                           ))}
                       </div>
                     </details>
@@ -203,39 +202,40 @@ export function InvoiceList({
                     <div className="invoice-card-actions">
                       {invoice.status === 'draft' && (
                         <>
-                          <button
-                            className="btn btn-small btn-primary"
+                          <Button
+                            variant="primary"
+                            size="small"
                             onClick={() => onUpdateInvoice(invoice.id, { status: 'sent' })}
                           >
                             Mark as Sent
-                          </button>
+                          </Button>
                           {waveConfig.connected && (
-                            <button
-                              className="btn btn-small"
+                            <Button
+                              size="small"
                               disabled={isSyncing}
                               onClick={() => handleSyncToWave(invoice)}
                             >
-                              {isSyncing ? 'Syncing...' : 'Sync to Wave'}
-                            </button>
+                              {isSyncing ? 'Sending...' : 'Send to Wave'}
+                            </Button>
                           )}
                         </>
                       )}
                       {invoice.status === 'sent' && (
                         <>
-                          <button
-                            className="btn btn-small"
+                          <Button
+                            size="small"
                             onClick={() => onUpdateInvoice(invoice.id, { status: 'draft' })}
                           >
                             Mark as Unsent
-                          </button>
+                          </Button>
                           {waveConfig.connected && (
-                            <button
-                              className="btn btn-small"
+                            <Button
+                              size="small"
                               disabled={isSyncing}
                               onClick={() => handleSyncToWave(invoice)}
                             >
-                              {isSyncing ? 'Syncing...' : 'Sync to Wave'}
-                            </button>
+                              {isSyncing ? 'Sending...' : 'Send to Wave'}
+                            </Button>
                           )}
                         </>
                       )}
@@ -251,46 +251,25 @@ export function InvoiceList({
                               View in Wave
                             </a>
                           )}
-                          <button
-                            className="btn btn-small"
+                          <Button
+                            size="small"
                             onClick={() => onUpdateInvoice(invoice.id, { status: 'draft' })}
                           >
                             Mark as Unsent
-                          </button>
+                          </Button>
                         </>
                       )}
                       {!waveConfig.connected && invoice.status !== 'synced' && (
-                        <button className="btn btn-small" onClick={onOpenWaveSetup}>
-                          Connect Wave
-                        </button>
+                        <Button size="small" onClick={onOpenWaveSetup}>
+                          Send to Wave
+                        </Button>
                       )}
-                      {deleteConfirmId === invoice.id ? (
-                        <div className="delete-confirm-inline">
-                          <span className="delete-confirm-text">Delete?</span>
-                          <button
-                            className="btn btn-small btn-danger"
-                            onClick={() => {
-                              onDeleteInvoice(invoice.id);
-                              setDeleteConfirmId(null);
-                            }}
-                          >
-                            Yes
-                          </button>
-                          <button
-                            className="btn btn-small"
-                            onClick={() => setDeleteConfirmId(null)}
-                          >
-                            No
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          className="btn btn-small btn-danger-text"
-                          onClick={() => setDeleteConfirmId(invoice.id)}
-                        >
-                          Delete
-                        </button>
-                      )}
+                      <DeleteConfirm
+                        pending={deleteConfirmId === invoice.id}
+                        onRequest={() => setDeleteConfirmId(invoice.id)}
+                        onConfirm={() => { onDeleteInvoice(invoice.id); setDeleteConfirmId(null); }}
+                        onCancel={() => setDeleteConfirmId(null)}
+                      />
                     </div>
                   </div>
                 )}

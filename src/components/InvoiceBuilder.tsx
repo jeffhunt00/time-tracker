@@ -1,6 +1,11 @@
 import { useState, useMemo } from 'react';
 import type { TimeEntry, InvoiceLineItem } from '../types';
 import { formatDuration, formatDecimalHours } from '../utils/time';
+import { Button } from './Button';
+import { EmptyState } from './EmptyState';
+import { StepIndicator } from './StepIndicator';
+import { TabBar } from './TabBar';
+import { EntryRow } from './EntryRow';
 
 type GroupMode = 'task' | 'reference' | 'single';
 type Step = 'select' | 'group' | 'confirm';
@@ -89,12 +94,15 @@ export function InvoiceBuilder({
   if (unbilledEntries.length === 0) {
     return (
       <div className="invoice-builder">
-        <div className="invoice-empty">
-          <p>No unbilled entries to invoice.</p>
-          <button className="btn btn-small" onClick={onCancel}>
-            Back to Invoices
-          </button>
-        </div>
+        <EmptyState
+          className="invoice-empty"
+          message="No unbilled entries to invoice."
+          action={
+            <Button size="small" onClick={onCancel}>
+              Back to Invoices
+            </Button>
+          }
+        />
       </div>
     );
   }
@@ -102,25 +110,15 @@ export function InvoiceBuilder({
   return (
     <div className="invoice-builder">
       {/* Step indicator */}
-      <div className="invoice-steps">
-        {(['select', 'group', 'confirm'] as Step[]).map((s, i) => (
-          <button
-            key={s}
-            className={`invoice-step ${step === s ? 'active' : ''} ${
-              ['select', 'group', 'confirm'].indexOf(step) > i ? 'completed' : ''
-            }`}
-            onClick={() => {
-              const currentIdx = ['select', 'group', 'confirm'].indexOf(step);
-              if (i <= currentIdx) setStep(s);
-            }}
-          >
-            <span className="invoice-step-num">{i + 1}</span>
-            <span className="invoice-step-label">
-              {s === 'select' ? 'Select' : s === 'group' ? 'Group' : 'Create'}
-            </span>
-          </button>
-        ))}
-      </div>
+      <StepIndicator
+        steps={[
+          { value: 'select' as Step, label: 'Select' },
+          { value: 'group' as Step, label: 'Group' },
+          { value: 'confirm' as Step, label: 'Create' },
+        ]}
+        activeStep={step}
+        onStepClick={setStep}
+      />
 
       {/* Step 1: Select entries */}
       {step === 'select' && (
@@ -150,30 +148,26 @@ export function InvoiceBuilder({
                   checked={selectedIds.has(entry.id)}
                   onChange={() => toggleEntry(entry.id)}
                 />
-                <span className="summary-entry-date">{entry.date}</span>
-                <span className="summary-entry-duration">{formatDuration(entry.duration)}</span>
-                {entry.reference && (
-                  <span className="summary-entry-ref">{entry.reference}</span>
-                )}
-                <span className="summary-entry-task">{entry.task}</span>
-                {entry.description && (
-                  <span className="summary-entry-desc">{entry.description}</span>
-                )}
+                <EntryRow
+                  date={entry.date}
+                  duration={formatDuration(entry.duration)}
+                  task={entry.task}
+                  reference={entry.reference}
+                  description={entry.description}
+                />
               </label>
             ))}
           </div>
 
           <div className="invoice-step-actions">
-            <button className="btn" onClick={onCancel}>
-              Cancel
-            </button>
-            <button
-              className="btn btn-primary"
+            <Button onClick={onCancel}>Cancel</Button>
+            <Button
+              variant="primary"
               disabled={selectedIds.size === 0}
               onClick={() => setStep('group')}
             >
               Next: Group Line Items
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -183,15 +177,15 @@ export function InvoiceBuilder({
         <div className="invoice-step-content">
           <div className="invoice-group-toggle">
             <span className="invoice-group-label">Group by:</span>
-            {(['task', 'reference', 'single'] as GroupMode[]).map((m) => (
-              <button
-                key={m}
-                className={`btn btn-small ${groupMode === m ? 'btn-primary' : ''}`}
-                onClick={() => setGroupMode(m)}
-              >
-                {m === 'task' ? 'Task' : m === 'reference' ? 'Reference' : 'One Item'}
-              </button>
-            ))}
+            <TabBar
+              items={[
+                { value: 'task' as GroupMode, label: 'Task' },
+                { value: 'reference' as GroupMode, label: 'Reference' },
+                { value: 'single' as GroupMode, label: 'One Item' },
+              ]}
+              activeValue={groupMode}
+              onChange={setGroupMode}
+            />
           </div>
 
           <div className="invoice-line-items">
@@ -241,15 +235,10 @@ export function InvoiceBuilder({
           )}
 
           <div className="invoice-step-actions">
-            <button className="btn" onClick={() => setStep('select')}>
-              Back
-            </button>
-            <button
-              className="btn btn-primary"
-              onClick={() => setStep('confirm')}
-            >
+            <Button onClick={() => setStep('select')}>Back</Button>
+            <Button variant="primary" onClick={() => setStep('confirm')}>
               Next: Review
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -296,15 +285,10 @@ export function InvoiceBuilder({
           </div>
 
           <div className="invoice-step-actions">
-            <button className="btn" onClick={() => setStep('group')}>
-              Back
-            </button>
-            <button
-              className="btn btn-primary"
-              onClick={handleCreate}
-            >
+            <Button onClick={() => setStep('group')}>Back</Button>
+            <Button variant="primary" onClick={handleCreate}>
               Create Invoice
-            </button>
+            </Button>
           </div>
         </div>
       )}

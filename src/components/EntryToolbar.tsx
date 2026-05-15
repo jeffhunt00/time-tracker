@@ -1,20 +1,15 @@
 import { useState } from 'react';
+import { TabBar } from './TabBar';
 
 export type SortMode = 'date-desc' | 'date-asc' | 'created-desc' | 'created-asc';
 export type BillingFilter = 'all' | 'unbilled' | 'billed';
+export type GroupMode = 'none' | 'task' | 'date' | 'reference';
 
 export interface DateFilter {
   from: string;
   to: string;
   label?: string;
 }
-
-const SORT_LABELS: Record<SortMode, string> = {
-  'date-desc': 'Date (Latest)',
-  'date-asc': 'Date (Oldest)',
-  'created-desc': 'Added (Newest)',
-  'created-asc': 'Added (Oldest)',
-};
 
 function toDateStr(d: Date): string {
   return d.toISOString().split('T')[0];
@@ -23,25 +18,16 @@ function toDateStr(d: Date): string {
 function getPresets(): { label: string; filter: DateFilter }[] {
   const now = new Date();
   const today = toDateStr(now);
-
   const weekStart = new Date(now);
   weekStart.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1));
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
-
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
   return [
     { label: 'Today', filter: { from: today, to: today, label: 'Today' } },
-    {
-      label: 'This Week',
-      filter: { from: toDateStr(weekStart), to: toDateStr(weekEnd), label: 'This Week' },
-    },
-    {
-      label: 'This Month',
-      filter: { from: toDateStr(monthStart), to: toDateStr(monthEnd), label: 'This Month' },
-    },
+    { label: 'This Week', filter: { from: toDateStr(weekStart), to: toDateStr(weekEnd), label: 'This Week' } },
+    { label: 'This Month', filter: { from: toDateStr(monthStart), to: toDateStr(monthEnd), label: 'This Month' } },
   ];
 }
 
@@ -53,6 +39,8 @@ interface Props {
   onClearFilter: () => void;
   billingFilter?: BillingFilter;
   onBillingFilterChange?: (filter: BillingFilter) => void;
+  groupMode?: GroupMode;
+  onGroupModeChange?: (mode: GroupMode) => void;
 }
 
 export function EntryToolbar({
@@ -63,11 +51,12 @@ export function EntryToolbar({
   onClearFilter,
   billingFilter = 'all',
   onBillingFilterChange,
+  groupMode = 'none',
+  onGroupModeChange,
 }: Props) {
   const [showFilterForm, setShowFilterForm] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-
   const presets = getPresets();
 
   function handleApply() {
@@ -87,50 +76,51 @@ export function EntryToolbar({
 
   function formatFilterLabel(filter: DateFilter): string {
     if (filter.label) return filter.label;
-    if (filter.from && filter.to) {
-      if (filter.from === filter.to) return filter.from;
-      return `${filter.from} to ${filter.to}`;
-    }
+    if (filter.from && filter.to) return filter.from === filter.to ? filter.from : `${filter.from} – ${filter.to}`;
     if (filter.from) return `From ${filter.from}`;
     return `Through ${filter.to}`;
   }
 
   return (
     <div className="entry-toolbar">
-      {onBillingFilterChange && (
-        <div className="toolbar-row">
-          <div className="billing-filter">
-            {(['all', 'unbilled', 'billed'] as BillingFilter[]).map((f) => (
-              <button
-                key={f}
-                className={`btn btn-small ${billingFilter === f ? 'btn-primary' : ''}`}
-                onClick={() => onBillingFilterChange(f)}
-              >
-                {f.charAt(0).toUpperCase() + f.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Primary row: grouping + sort + filter */}
       <div className="toolbar-row">
         <div className="toolbar-left">
+          {onGroupModeChange && (
+            <TabBar
+              className="billing-filter"
+              items={[
+                { value: 'none' as GroupMode, label: 'All' },
+                { value: 'task' as GroupMode, label: 'Task' },
+                { value: 'date' as GroupMode, label: 'Date' },
+                { value: 'reference' as GroupMode, label: 'Reference' },
+              ]}
+              activeValue={groupMode}
+              onChange={onGroupModeChange}
+            />
+          )}
+          {onBillingFilterChange && (
+            <TabBar
+              className="billing-filter"
+              items={[
+                { value: 'all' as BillingFilter, label: 'All' },
+                { value: 'unbilled' as BillingFilter, label: 'Unbilled' },
+                { value: 'billed' as BillingFilter, label: 'Billed' },
+              ]}
+              activeValue={billingFilter}
+              onChange={onBillingFilterChange}
+            />
+          )}
           {activeFilter ? (
             <span className="filter-badge">
               {formatFilterLabel(activeFilter)}
-              <button
-                className="filter-badge-remove"
-                onClick={handleClear}
-                title="Remove filter"
-              >
+              <button className="filter-badge-remove" onClick={handleClear} title="Remove filter" aria-label="Remove filter">
                 &times;
               </button>
             </span>
           ) : (
-            <button
-              className="btn btn-small"
-              onClick={() => setShowFilterForm(!showFilterForm)}
-            >
-              Filter by Date
+            <button className="btn btn-small" onClick={() => setShowFilterForm(!showFilterForm)}>
+              Filter
             </button>
           )}
         </div>
@@ -138,12 +128,12 @@ export function EntryToolbar({
           className="sort-select"
           value={sortMode}
           onChange={(e) => onSortChange(e.target.value as SortMode)}
+          aria-label="Sort entries"
         >
-          {Object.entries(SORT_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
+          <option value="date-desc">Latest first</option>
+          <option value="date-asc">Oldest first</option>
+          <option value="created-desc">Added (newest)</option>
+          <option value="created-asc">Added (oldest)</option>
         </select>
       </div>
 
@@ -154,10 +144,7 @@ export function EntryToolbar({
               <button
                 key={p.label}
                 className="btn btn-small"
-                onClick={() => {
-                  onApplyFilter(p.filter);
-                  setShowFilterForm(false);
-                }}
+                onClick={() => { onApplyFilter(p.filter); setShowFilterForm(false); }}
               >
                 {p.label}
               </button>
@@ -166,32 +153,14 @@ export function EntryToolbar({
           <div className="filter-custom">
             <label>
               From
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="form-input small"
-              />
+              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="form-input small" />
             </label>
             <label>
               To
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="form-input small"
-              />
+              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="form-input small" />
             </label>
-            <button
-              className="btn btn-small btn-primary"
-              onClick={handleApply}
-              disabled={!dateFrom && !dateTo}
-            >
-              Apply
-            </button>
-            <button className="btn btn-small" onClick={() => setShowFilterForm(false)}>
-              Cancel
-            </button>
+            <button className="btn btn-small btn-primary" onClick={handleApply} disabled={!dateFrom && !dateTo}>Apply</button>
+            <button className="btn btn-small" onClick={() => setShowFilterForm(false)}>Cancel</button>
           </div>
         </div>
       )}
