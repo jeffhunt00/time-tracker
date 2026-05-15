@@ -129,24 +129,21 @@ This creates the `dist/` folder that the server will serve. **Re-run this any ti
 
 ### 2. Configure the launcher script
 
-The launcher script `scripts/serve.sh` is already included. Verify the Node path matches your system:
+Copy the example script and fill in the paths for your machine:
 
 ```bash
-#!/bin/bash
-exec /opt/homebrew/bin/node \
-  --import tsx \
-  /path/to/time-tracker/server/index.ts
-```
-
-Run `which node` to find your Node path. Common locations:
-- Homebrew: `/opt/homebrew/bin/node`
-- nvm: `/Users/YOUR_USERNAME/.nvm/versions/node/vX.Y.Z/bin/node`
-
-Update the path in `scripts/serve.sh` if needed, then make it executable:
-
-```bash
+cp scripts/serve.sh.example scripts/serve.sh
 chmod +x scripts/serve.sh
 ```
+
+Open `scripts/serve.sh` and replace the two placeholder paths:
+
+- `/path/to/node` — run `which node` to find yours
+  - Homebrew: `/opt/homebrew/bin/node`
+  - nvm: `/Users/YOUR_USERNAME/.nvm/versions/node/vX.Y.Z/bin/node`
+- `/path/to/time-tracker` — the absolute path to where you cloned this repo
+
+`scripts/serve.sh` is gitignored so your local paths stay off the repo.
 
 ---
 

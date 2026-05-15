@@ -1,0 +1,17 @@
+#!/bin/bash
+# Serves the production build on port 4000.
+# Called by the macOS LaunchAgent on login.
+# To rebuild after code changes: npm run build (from the project root)
+#
+# Setup: copy this file to serve.sh and fill in the paths for your machine.
+#   cp scripts/serve.sh.example scripts/serve.sh
+#   chmod +x scripts/serve.sh
+#
+# Find your node path with: which node
+# Common locations:
+#   Homebrew: /opt/homebrew/bin/node
+#   nvm:      /Users/YOUR_USERNAME/.nvm/versions/node/vX.Y.Z/bin/node
+
+exec /path/to/node \
+  --import tsx \
+  /path/to/time-tracker/server/index.ts
