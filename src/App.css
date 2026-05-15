@@ -74,43 +74,43 @@
 
 /* Project cards */
 .project-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 8px;
 }
 
 .project-card {
   display: flex;
-  align-items: center;
-  width: 100%;
-  text-align: left;
+  flex-direction: column;
   background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 18px 20px;
+  border-radius: 4px;
+  padding: 8px;
   cursor: pointer;
-  transition: box-shadow 0.15s, border-color 0.15s, transform 0.1s;
-  gap: 12px;
+  transition: box-shadow 0.15s, transform 0.1s;
+  text-align: left;
+  border: none;
+  overflow: hidden;
 }
 
 .project-card:hover {
   box-shadow: var(--shadow);
-  border-color: var(--accent);
   transform: translateY(-1px);
 }
 
-.project-card-body {
-  flex: 1;
-  min-width: 0;
+.project-card-inner {
+  border-top: 2px solid var(--accent);
+  padding-top: 8px;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
 .project-card-title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--text-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -118,40 +118,47 @@
 }
 
 .project-card-hours {
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 32px;
+  font-weight: 300;
   color: var(--accent);
-}
-
-.project-card-decimal {
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--text-secondary);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .project-card-no-time {
-  font-size: 13px;
+  font-size: 32px;
+  font-weight: 300;
   color: var(--text-secondary);
-  font-weight: 400;
+  line-height: 1.1;
 }
 
 .project-card-meta {
   display: flex;
-  gap: 12px;
-  font-size: 12px;
-  color: var(--text-secondary);
+  gap: 16px;
+  overflow: hidden;
 }
 
-.project-card-chevron {
-  font-size: 22px;
-  color: var(--text-secondary);
-  line-height: 1;
-  flex-shrink: 0;
-  transition: color 0.15s;
+.project-card-meta-item {
+  display: flex;
+  flex-direction: column;
 }
 
-.project-card:hover .project-card-chevron {
-  color: var(--accent);
+.project-card-meta-label {
+  font-family: 'SF Mono', ui-monospace, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.project-card-meta-value {
+  font-family: 'SF Mono', ui-monospace, Consolas, monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-heading);
+  text-transform: uppercase;
 }
 
 /* ── Project page ──────────────────────────────── */

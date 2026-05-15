@@ -109,16 +109,11 @@ OAuth tokens are stored at `~/.time-tracker/wave-tokens.json` (server-side only)
 
 ---
 
-## Run on macOS Startup with Laravel Valet
+## Run on macOS Startup (Valet or Herd)
 
 If you want the app available at `http://time-tracker.test` in any browser on your machine — automatically on login, no terminal needed — follow these steps.
 
-### Prerequisites
-
-- [Laravel Valet](https://laravel.com/docs/valet) installed and running
-- Node.js installed via Homebrew (the setup below assumes `/opt/homebrew/bin/node`)
-
-> If your Node is somewhere else (e.g. nvm, `/usr/local/bin/node`), update the path in `scripts/serve.sh` and the plist accordingly. Run `which node` to find yours.
+Steps 1–4 are the same regardless of whether you use Laravel Valet or Laravel Herd. Step 5 differs.
 
 ---
 
@@ -134,7 +129,7 @@ This creates the `dist/` folder that the server will serve. **Re-run this any ti
 
 ### 2. Configure the launcher script
 
-The launcher script `scripts/serve.sh` is already included. Verify the paths match your system:
+The launcher script `scripts/serve.sh` is already included. Verify the Node path matches your system:
 
 ```bash
 #!/bin/bash
@@ -143,7 +138,11 @@ exec /opt/homebrew/bin/node \
   /path/to/time-tracker/server/index.ts
 ```
 
-Make it executable:
+Run `which node` to find your Node path. Common locations:
+- Homebrew: `/opt/homebrew/bin/node`
+- nvm: `/Users/YOUR_USERNAME/.nvm/versions/node/vX.Y.Z/bin/node`
+
+Update the path in `scripts/serve.sh` if needed, then make it executable:
 
 ```bash
 chmod +x scripts/serve.sh
@@ -206,11 +205,57 @@ curl -s http://127.0.0.1:4000/api/wave/status
 
 ---
 
-### 5. Set up the Valet proxy
+### 5a. Set up the proxy — Laravel Valet
 
 ```bash
 valet proxy time-tracker http://127.0.0.1:4000
 ```
+
+Open [http://time-tracker.test](http://time-tracker.test) in any browser.
+
+---
+
+### 5b. Set up the proxy — Laravel Herd
+
+Herd's CLI requires PHP and may not work if PHP isn't configured. The reliable alternative is to create the Nginx config directly.
+
+Create the file `~/Library/Application Support/Herd/config/valet/Nginx/time-tracker.test`:
+
+```nginx
+server {
+    listen 127.0.0.1:80;
+    server_name time-tracker.test www.time-tracker.test *.time-tracker.test;
+    root /;
+    charset utf-8;
+    client_max_body_size 1024M;
+
+    access_log off;
+    error_log "/Users/YOUR_USERNAME/Library/Application Support/Herd/Log/time-tracker.test-error.log";
+
+    location / {
+        proxy_pass http://127.0.0.1:4000;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_set_header   Upgrade $http_upgrade;
+        proxy_set_header   Connection "upgrade";
+        proxy_http_version 1.1;
+        proxy_read_timeout 1800;
+        proxy_connect_timeout 1800;
+        proxy_redirect off;
+        proxy_buffering off;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+}
+```
+
+Replace `YOUR_USERNAME` with your macOS username.
+
+Then restart Nginx: click the **Herd icon in the menu bar → Restart Nginx** (or quit and reopen Herd).
 
 Open [http://time-tracker.test](http://time-tracker.test) in any browser.
 
@@ -235,6 +280,10 @@ launchctl unload ~/Library/LaunchAgents/com.timetracker.server.plist
 
 # Remove the Valet proxy
 valet unproxy time-tracker
+
+# Remove the Herd proxy
+rm ~/Library/Application\ Support/Herd/config/valet/Nginx/time-tracker.test
+# Then restart Nginx from the Herd menu bar
 ```
 
 ---

@@ -25,4 +25,8 @@ dist-ssr
 
 # Wave credentials
 server/.env
+
+# Claude Code
+.claude/settings.local.json
+.claude/worktrees/
 TimeTracker-PRD.md

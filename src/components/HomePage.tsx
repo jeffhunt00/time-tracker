@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Project, TimeEntry } from '../types';
-import { formatDuration, formatDecimalHours } from '../utils/time';
+import { formatDuration } from '../utils/time';
 
 interface Props {
   projects: Project[];
@@ -16,17 +16,6 @@ function getProjectStats(projectId: string, timeEntries: TimeEntry[]) {
   const sortedByDate = [...entries].sort((a, b) => b.date.localeCompare(a.date));
   const lastEntry = sortedByDate[0] ?? null;
   return { count: entries.length, totalMinutes, lastEntry };
-}
-
-function formatLastWorked(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00');
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const diff = Math.round((today.getTime() - d.getTime()) / 86400000);
-  if (diff === 0) return 'Today';
-  if (diff === 1) return 'Yesterday';
-  if (diff < 7) return `${diff} days ago`;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: diff > 365 ? 'numeric' : undefined });
 }
 
 export function HomePage({ projects, timeEntries, onSelectProject, onAddProject, onOpenWaveSetup }: Props) {
@@ -104,34 +93,38 @@ export function HomePage({ projects, timeEntries, onSelectProject, onAddProject,
             <div className="project-grid">
               {projects.map((project) => {
                 const { count, totalMinutes, lastEntry } = getProjectStats(project.id, timeEntries);
+                const decimalHours = totalMinutes > 0
+                  ? parseFloat((totalMinutes / 60).toFixed(1)) + 'h'
+                  : null;
+                const lastDate = lastEntry
+                  ? new Date(lastEntry.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                  : null;
                 return (
                   <button
                     key={project.id}
                     className="project-card"
                     onClick={() => onSelectProject(project.id)}
                   >
-                    <div className="project-card-body">
+                    <div className="project-card-inner">
                       <h2 className="project-card-title">{project.title}</h2>
                       <div className="project-card-hours">
-                        {totalMinutes > 0 ? (
-                          <>
-                            {formatDuration(totalMinutes)}
-                            <span className="project-card-decimal"> · {formatDecimalHours(totalMinutes)}h</span>
-                          </>
-                        ) : (
-                          <span className="project-card-no-time">No time logged</span>
-                        )}
+                        {decimalHours ?? <span className="project-card-no-time">—</span>}
                       </div>
                       <div className="project-card-meta">
-                        {count > 0 && (
-                          <span>{count} {count === 1 ? 'entry' : 'entries'}</span>
+                        {lastDate && (
+                          <div className="project-card-meta-item">
+                            <span className="project-card-meta-label">Updated</span>
+                            <span className="project-card-meta-value">{lastDate}</span>
+                          </div>
                         )}
-                        {lastEntry && (
-                          <span>Last worked {formatLastWorked(lastEntry.date)}</span>
+                        {count > 0 && (
+                          <div className="project-card-meta-item">
+                            <span className="project-card-meta-label">Entries</span>
+                            <span className="project-card-meta-value">{count}</span>
+                          </div>
                         )}
                       </div>
                     </div>
-                    <span className="project-card-chevron">›</span>
                   </button>
                 );
               })}
